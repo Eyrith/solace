@@ -75,3 +75,4 @@ describe('PostgreSQL Migration & RLS Security Policy Verification', () => {
     expect(migrationSql).toContain("'24_hours'   THEN now() + INTERVAL '24 hours'")
   })
 })
+

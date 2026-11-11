@@ -25,3 +25,4 @@ export async function GET(request: NextRequest) {
   // Return user to an error page or back to login
   return NextResponse.redirect(`${origin}/auth/login?error=auth_callback_failed`)
 }
+

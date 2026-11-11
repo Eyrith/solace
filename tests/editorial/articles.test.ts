@@ -37,3 +37,4 @@ describe('Editorial Content & Attribution Integrity', () => {
     expect(psyche?.feedUrl).toBe('https://psyche.co/feed')
   })
 })
+
