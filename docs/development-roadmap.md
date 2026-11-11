@@ -13,51 +13,53 @@
 - Sanctuary components (PrivateShell, ChatBubble, ChatComposer, VoiceNotePlayer)
 - Next.js project scaffold (Tailwind v4, TypeScript, build passing)
 
-### 🔄 Phase 2 — Architecture & Infrastructure (In Progress)
+### ✅ Phase 2 — Architecture & Infrastructure (Complete)
 - Architecture documentation ✅
-- Database schema documentation ✅
-- Security plan ✅
-- `.env.example` and project scaffolding
-- Supabase project setup (user action required)
-- Database migrations
-- Middleware host routing
-- Supabase client helpers
+- Database schema documentation (all 20 tables + stored procedures) ✅
+- Security plan & RLS policies ✅
+- `.env.example` & package installations (@supabase/ssr, livekit-server-sdk, etc.) ✅
+- Database migrations (`001_initial_schema.sql`) ✅
+- Proxy host routing (`src/proxy.ts` for Next.js 16) ✅
+- Supabase client & server factories with offline/demo resilience ✅
 
-### 📋 Phase 3 — Authentication & Private Spaces
-- Registration + email verification
-- Login (editorial-styled, discreet)
-- Password reset
-- Invitation system (create + consume)
-- Space creation
-- Space switcher (multiple spaces)
-- Session management + revocation UI
+### ✅ Phase 3 — Authentication & Private Spaces (Complete)
+- Discreet reader login (`/auth/login`) & registration (`/auth/register`) ✅
+- Private sanctuary login (`/sanctuary/login`) & registration (`/sanctuary/register`) ✅
+- Single-use invite claim system (`/invite/[token]`) with 2-member space cap check ✅
+- Device session revocation UI (`/settings/account`) ✅
+- Permanent account purge workflow with confirmation modal ✅
 
-### 📋 Phase 4 — Public Editorial Portal
-- RSS ingestion Edge Function
-- Homepage (featured articles, publication strips)
-- Discover page (all articles, filters)
-- 5 topic category pages
-- Publication directory + individual publication pages
-- Search (full-text via Supabase)
-- Saved articles (localStorage for guests, DB for authenticated)
-- Reading history (opt-in)
+### ✅ Phase 4 — Public Editorial Portal (Complete)
+- Curated literature index from Psyche, Aeon, Greater Good, The Marginalian, The School of Life ✅
+- Homepage (`/`) with featured inquiries, quote of reflection, topics, publication strips ✅
+- Discover catalog (`/discover`) with live search & source filter ✅
+- 5 dedicated category hubs (`/psychology`, `/relationships`, `/philosophy`, `/science`, `/literature`) ✅
+- Publication directory (`/publications`) and individual profile pages (`/publications/[slug]`) ✅
+- Interactive search engine (`/search`) with live term highlighting and suggestions ✅
+- Saved bookmarks library (`/saved`) with localStorage persistence ✅
+- Reading history log (`/history`) with privacy tracking toggle ✅
 
-### 📋 Phase 5 — Messaging Core
-- Real-time 1:1 text chat (Supabase Realtime)
-- Reply, edit, soft-delete
-- Reactions
-- Read receipts (Realtime Broadcast)
-- Typing indicators (Realtime Presence)
-- Message search
-- Pinned messages
-- Private media gallery
+### ✅ Phase 5 & 6 & 7 — Private Messaging & Disappearing Engine UI (Complete)
+- 1:1 conversation room (`/messages/[spaceId]`) with auto-scroll and reply quoting ✅
+- Disappearing timer preset selector (`just_seen`, `1s`, `5m`, `1h`, `24h`) with live badge indicators ✅
+- Real-time reaction tray (❤️, 🥰, 🫂, 😂, 🕊️) with optimistic count toggling ✅
+- Voice note player and simulated recorder trigger ✅
+- In-conversation search and pinned memory strip ✅
+- Partner typing indicator with reduced-motion fallback ✅
 
-### 📋 Phase 6 — Disappearing Messages
-- Expiry mode selector in composer
-- `mark_message_viewed` RPC integration
-- Background cleanup Edge Function (pg_cron, 60s interval)
-- Media cleanup (Supabase Storage object deletion)
-- Cache-Control: no-store on all private responses
+### ✅ Phase 8 — Games & Question Engine (Complete)
+- Games Parlour (`/games`) featuring Couple Trivia, Would-You-Rather, Compatibility, Truth or Dare ✅
+- Multi-round interactive session player (`/games/[sessionId]`) with blind-reveal masking ✅
+- Question Library (`/questions`) spanning 8 categories with "Draw a Card" random generator ✅
+- Direct-to-chat inquiry sharing ✅
+
+### ✅ Phase 9, 10, 11 — Sanctuary Living, Calls & Atmosphere (Complete)
+- Sanctuary Dashboard (`/home`) with couple presence & soft mood pulse (anti-conflict de-escalation) ✅
+- Video & Voice Calling Room (`/calls`) with WebRTC state indicators, mic/camera controls, PiP preview ✅
+- Shared archive (`/memories`) with digital love letters, shared timeline, and strict private journal ✅
+- Calendar & Milestones (`/calendar`) with countdown timers and anniversary reminders ✅
+- Atmosphere customization (`/settings/appearance`) with 9 palettes, light/dark modes, 6 font pairings, chat bubble styles ✅
+- Discretion settings (`/settings/notifications`) with stealth alert masking ✅
 - Client cache purge on reconnect
 
 ### 📋 Phase 7 — Media Messaging
