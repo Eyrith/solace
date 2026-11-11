@@ -137,6 +137,13 @@ export function PublicShell({
               <Link href={signInHref}>Sign in</Link>
             </Button>
 
+            {/* Quick Sanctuary access pill (Discreet / Dev helper) */}
+            <Button variant="primary" size="sm" asChild className="hidden md:inline-flex ml-1">
+              <Link href="/home" title="Enter private Sanctuary chat & games">
+                <span>Sanctuary</span>
+              </Link>
+            </Button>
+
             <Button
               type="button"
               variant="ghost"
@@ -175,9 +182,16 @@ export function PublicShell({
               <Link
                 href={signInHref}
                 onClick={() => setMobileMenuOpen(false)}
-                className="min-h-11 flex items-center rounded-[var(--ds-radius)] px-3 text-base font-medium text-[var(--primary)] hover:bg-[var(--muted)]"
+                className="min-h-11 flex items-center rounded-[var(--ds-radius)] px-3 text-base font-medium text-[var(--muted-foreground)] hover:bg-[var(--muted)]"
               >
                 Sign in
+              </Link>
+              <Link
+                href="/home"
+                onClick={() => setMobileMenuOpen(false)}
+                className="min-h-11 flex items-center rounded-[var(--ds-radius)] px-3 text-base font-medium text-[var(--primary)] hover:bg-[var(--muted)]"
+              >
+                Enter Sanctuary &rarr;
               </Link>
             </nav>
           </div>

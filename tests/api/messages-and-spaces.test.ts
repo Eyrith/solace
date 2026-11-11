@@ -78,3 +78,4 @@ describe('Private Space & Messaging API Endpoints', () => {
     expect(inviteJson.inviteUrl).toContain('/invite/')
   })
 })
+
