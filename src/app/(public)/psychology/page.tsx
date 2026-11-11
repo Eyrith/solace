@@ -8,3 +8,4 @@ export const metadata = {
 export default function PsychologyPage() {
   return <CategoryView categoryKey="psychology" />
 }
+

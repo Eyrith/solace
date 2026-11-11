@@ -8,3 +8,4 @@ export const metadata = {
 export default function SciencePage() {
   return <CategoryView categoryKey="science" />
 }
+

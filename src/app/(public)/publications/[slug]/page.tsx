@@ -111,3 +111,4 @@ export default async function PublicationDetailPage({ params }: PublicationPageP
     </div>
   )
 }
+

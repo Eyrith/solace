@@ -179,3 +179,4 @@ export const GAME_TEMPLATES: GameTemplate[] = [
     ],
   },
 ]
+

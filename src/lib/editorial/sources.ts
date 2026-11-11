@@ -84,3 +84,4 @@ export const EDITORIAL_PUBLICATIONS: EditorialPublication[] = [
     articleCount: 12,
   },
 ]
+
