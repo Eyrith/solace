@@ -108,19 +108,45 @@ export default function SpaceMessagesPage() {
     scrollToBottom()
   }, [messages, partnerTyping])
 
+  // Active client-side countdown timer for disappearing messages
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now()
+      setMessages((prev) =>
+        prev.filter((m) => {
+          if (!m.expiresAt) return true
+          return m.expiresAt > now
+        })
+      )
+    }, 500)
+    return () => clearInterval(timer)
+  }, [])
+
   // Handle sending new message
-  const handleSend = (text: string, disappearing: DisappearingPreset) => {
+  const handleSend = async (text: string, disappearing: DisappearingPreset) => {
     if (!text.trim()) return
 
     const now = new Date()
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
     let disappearingLabel: string | undefined
-    if (disappearing === 'just_seen') disappearingLabel = 'Disappears on view'
-    else if (disappearing === '1s') disappearingLabel = '1s after view'
-    else if (disappearing === '5m') disappearingLabel = '5m after view'
-    else if (disappearing === '1h') disappearingLabel = '1h after view'
-    else if (disappearing === '24h') disappearingLabel = '24 hours'
+    let expiresAt: number | undefined
+
+    if (disappearing === 'just_seen') {
+      disappearingLabel = 'Disappears on view'
+    } else if (disappearing === '1s') {
+      disappearingLabel = '1s after view'
+      expiresAt = Date.now() + 15000 // In demo room: keeps for 15s or 1s after partner views
+    } else if (disappearing === '5m') {
+      disappearingLabel = '5m after view'
+      expiresAt = Date.now() + 5 * 60 * 1000
+    } else if (disappearing === '1h') {
+      disappearingLabel = '1h after view'
+      expiresAt = Date.now() + 60 * 60 * 1000
+    } else if (disappearing === '24h') {
+      disappearingLabel = '24 hours'
+      expiresAt = Date.now() + 24 * 60 * 60 * 1000
+    }
 
     const newMsg: ActiveMessage = {
       id: `msg-${Date.now()}`,
@@ -131,10 +157,25 @@ export default function SpaceMessagesPage() {
       replyPreview: replyingTo?.text ? replyingTo.text.slice(0, 60) : undefined,
       disappearing,
       disappearingLabel,
+      expiresAt,
     }
 
     setMessages((prev) => [...prev, newMsg])
     setReplyingTo(null)
+
+    // Call server endpoint (asynchronously, non-blocking)
+    try {
+      fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spaceId,
+          content: text,
+          expiresMode: disappearing,
+          replyToId: replyingTo?.id,
+        }),
+      }).catch(() => {})
+    } catch {}
 
     // Simulate partner reaction or soft reply
     setTimeout(() => {
