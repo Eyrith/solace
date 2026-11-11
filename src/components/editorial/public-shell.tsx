@@ -14,13 +14,13 @@ export interface NavItem {
 }
 
 const DEFAULT_EDITORIAL_NAV: NavItem[] = [
-  { label: "Discover", href: "/preview/editorial" },
-  { label: "Psychology", href: "#psychology" },
-  { label: "Relationships", href: "#relationships" },
-  { label: "Philosophy", href: "#philosophy" },
-  { label: "Science", href: "#science" },
-  { label: "Literature", href: "#literature" },
-  { label: "Publications", href: "#publications" },
+  { label: "Discover", href: "/discover" },
+  { label: "Psychology", href: "/psychology" },
+  { label: "Relationships", href: "/relationships" },
+  { label: "Philosophy", href: "/philosophy" },
+  { label: "Science", href: "/science" },
+  { label: "Literature", href: "/literature" },
+  { label: "Publications", href: "/publications" },
 ];
 
 export interface PublicShellProps {
@@ -42,8 +42,8 @@ export function PublicShell({
   brandName = "Commonplace",
   navItems = DEFAULT_EDITORIAL_NAV,
   onSearchClick,
-  savedHref = "#saved",
-  signInHref = "#signin",
+  savedHref = "/saved",
+  signInHref = "/auth/login",
 }: PublicShellProps) {
   const { mode, toggleMode } = useDesignSystem();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -70,7 +70,7 @@ export function PublicShell({
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-8">
             <Link
-              href="/preview/editorial"
+              href="/"
               className="font-[family-name:var(--ds-font-display)] text-xl font-semibold tracking-tight text-[var(--foreground)] hover:opacity-80"
             >
               {brandName}
@@ -100,10 +100,17 @@ export function PublicShell({
               type="button"
               variant="ghost"
               size="icon"
+              asChild={!onSearchClick}
               onClick={onSearchClick}
               aria-label="Search curated essays"
             >
-              <Search className="h-4 w-4" aria-hidden="true" />
+              {onSearchClick ? (
+                <Search className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Link href="/search" aria-label="Search curated essays">
+                  <Search className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              )}
             </Button>
 
             <Button variant="ghost" size="icon" asChild>
@@ -188,14 +195,14 @@ export function PublicShell({
             All copyrights remain with their respective publications.
           </p>
           <div className="flex items-center gap-5">
-            <Link href="#publications" className="hover:text-[var(--foreground)] underline-offset-4 hover:underline">
+            <Link href="/publications" className="hover:text-[var(--foreground)] underline-offset-4 hover:underline">
               Publication Directory
             </Link>
-            <Link href="#history" className="hover:text-[var(--foreground)] underline-offset-4 hover:underline">
+            <Link href="/history" className="hover:text-[var(--foreground)] underline-offset-4 hover:underline">
               Reading History
             </Link>
-            <Link href="/design-system" className="hover:text-[var(--foreground)] underline-offset-4 hover:underline">
-              Design System
+            <Link href="/saved" className="hover:text-[var(--foreground)] underline-offset-4 hover:underline">
+              Saved
             </Link>
           </div>
         </div>

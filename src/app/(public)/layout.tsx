@@ -12,3 +12,4 @@ export default function PublicLayout({
 }) {
   return <PublicShell>{children}</PublicShell>
 }
+

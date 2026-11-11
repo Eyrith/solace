@@ -484,3 +484,4 @@ We document these limitations honestly. We do not falsely advertise E2EE or priv
 
 *See `docs/database-schema.md` for table definitions.*
 *See `supabase/migrations/` for the actual migration SQL.*
+

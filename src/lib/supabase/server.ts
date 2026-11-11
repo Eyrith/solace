@@ -17,10 +17,12 @@ import { cookies } from 'next/headers'
  */
 export async function createClient() {
   const cookieStore = await cookies()
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co'
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    key,
     {
       cookies: {
         getAll() {
@@ -33,8 +35,7 @@ export async function createClient() {
             )
           } catch {
             // setAll is called from a Server Component — cookies can only
-            // be set from Server Actions or Route Handlers. This is fine;
-            // the middleware will refresh the session.
+            // be set from Server Actions or Route Handlers.
           }
         },
       },
@@ -49,9 +50,12 @@ export async function createClient() {
  * Used by: Route Handlers, Edge Functions, background jobs.
  */
 export function createServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-project.supabase.co'
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key'
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    url,
+    serviceKey,
     {
       cookies: {
         getAll: () => [],
@@ -64,3 +68,4 @@ export function createServiceClient() {
     }
   )
 }
+

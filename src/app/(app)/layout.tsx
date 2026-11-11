@@ -13,3 +13,4 @@ export default function AppLayout({
 }) {
   return <PrivateShell>{children}</PrivateShell>
 }
+

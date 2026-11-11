@@ -48,16 +48,26 @@ export interface PrivateShellProps {
   headerActions?: React.ReactNode;
 }
 
+const SECTION_ROUTES: Record<SanctuarySection, string> = {
+  messages: "/messages/space-1",
+  questions: "/questions",
+  games: "/games",
+  shared: "/memories",
+  journal: "/calendar",
+  settings: "/settings/appearance",
+};
+
 const PRIMARY_NAV: readonly {
   id: SanctuarySection;
   label: string;
+  href: string;
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 }[] = [
-  { id: "messages", label: "Messages", icon: MessageCircle },
-  { id: "questions", label: "Questions", icon: HelpCircle },
-  { id: "games", label: "Games", icon: Gamepad2 },
-  { id: "shared", label: "Shared", icon: Sparkles },
-  { id: "journal", label: "Journal", icon: BookHeart },
+  { id: "messages", label: "Messages", href: "/messages/space-1", icon: MessageCircle },
+  { id: "questions", label: "Questions", href: "/questions", icon: HelpCircle },
+  { id: "games", label: "Games", href: "/games", icon: Gamepad2 },
+  { id: "shared", label: "Memories", href: "/memories", icon: Sparkles },
+  { id: "journal", label: "Calendar", href: "/calendar", icon: BookHeart },
 ];
 
 const DEFAULT_SPACES: PrivateSpaceSummary[] = [
@@ -119,13 +129,21 @@ export function PrivateShell({
         <Separator />
 
         <nav aria-label="Private sanctuary navigation" className="flex-1 p-3 space-y-1">
+          <Link
+            href="/home"
+            className="flex w-full min-h-11 items-center gap-3 rounded-[var(--ds-radius)] px-3.5 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--muted)] mb-2"
+          >
+            <Sparkles className="h-4 w-4 text-[var(--primary)]" />
+            <span>Sanctuary Home</span>
+          </Link>
+
           {PRIMARY_NAV.map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
+                href={item.href}
                 onClick={() => onSelectSection?.(item.id)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
@@ -137,7 +155,7 @@ export function PrivateShell({
               >
                 <Icon className="h-4 w-4 shrink-0" aria-hidden={true} />
                 <span>{item.label}</span>
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -145,8 +163,8 @@ export function PrivateShell({
         <Separator />
 
         <div className="p-3 space-y-1">
-          <button
-            type="button"
+          <Link
+            href="/settings/appearance"
             onClick={() => onSelectSection?.("settings")}
             aria-current={activeSection === "settings" ? "page" : undefined}
             className={cn(
@@ -157,13 +175,13 @@ export function PrivateShell({
             )}
           >
             <Settings className="h-4 w-4 shrink-0" aria-hidden={true} />
-            <span>Appearance & Security</span>
-          </button>
+            <span>Appearance & Atmosphere</span>
+          </Link>
           <Link
-            href="/design-system"
+            href="/settings/account"
             className="flex min-h-10 items-center justify-between rounded-[var(--ds-radius)] px-3.5 text-xs text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
           >
-            <span>Design System</span>
+            <span>Account & Security</span>
             <ChevronDown className="h-3.5 w-3.5 -rotate-90" aria-hidden="true" />
           </Link>
         </div>
@@ -219,9 +237,9 @@ export function PrivateShell({
             const Icon = item.icon;
             const active = activeSection === item.id;
             return (
-              <button
+              <Link
                 key={item.id}
-                type="button"
+                href={item.href}
                 onClick={() => onSelectSection?.(item.id)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
@@ -233,7 +251,7 @@ export function PrivateShell({
               >
                 <Icon className="h-4 w-4" aria-hidden={true} />
                 <span>{item.label}</span>
-              </button>
+              </Link>
             );
           })}
         </div>

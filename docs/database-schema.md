@@ -611,3 +611,4 @@ $$;
 
 *See `docs/security-plan.md` for all RLS policies.*
 *See `supabase/migrations/` for the actual SQL migration files.*
+

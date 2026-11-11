@@ -367,3 +367,4 @@ export const DEFAULT_USER_PREFERENCES: Omit<UserPreferences, 'user_id' | 'update
   discreet_notifs: true,
   reading_history_enabled: false,
 }
+

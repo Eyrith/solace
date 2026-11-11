@@ -709,3 +709,4 @@ INSERT INTO editorial_sources (name, slug, description, website_url, rss_url, ac
   ('Greater Good Magazine', 'greater-good', 'Science-based insights for a meaningful life', 'https://greatergood.berkeley.edu', 'https://greatergood.berkeley.edu/feeds/articles', '#4A7C59'),
   ('The Marginalian', 'marginalian', 'An inventory of the cross-disciplinary interestingness of the world', 'https://www.themarginalian.org', 'https://www.themarginalian.org/feed/', '#8B5E3C'),
   ('The School of Life', 'school-of-life', 'Developing emotional intelligence', 'https://www.theschooloflife.com', NULL, '#C8A96E');
+

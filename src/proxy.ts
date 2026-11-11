@@ -20,30 +20,39 @@ export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   // ── 1. Refresh Supabase session ───────────────────────────────────────────
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+  let user = null
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // IMPORTANT: Don't write any logic between createServerClient and
-  // supabase.auth.getUser(). It may cause session refresh issues.
-  const { data: { user } } = await supabase.auth.getUser()
+  if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('your-project-ref')) {
+    try {
+      const supabase = createServerClient(
+        supabaseUrl,
+        supabaseAnonKey,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll()
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value }) =>
+                request.cookies.set(name, value)
+              )
+              supabaseResponse = NextResponse.next({ request })
+              cookiesToSet.forEach(({ name, value, options }) =>
+                supabaseResponse.cookies.set(name, value, options)
+              )
+            },
+          },
+        }
+      )
+
+      const { data } = await supabase.auth.getUser()
+      user = data?.user ?? null
+    } catch (e) {
+      console.warn('Supabase auth check in proxy failed or not yet configured:', e)
+    }
+  }
 
   // ── 2. Determine which experience to serve ────────────────────────────────
   const host = request.headers.get('host') ?? ''
@@ -67,12 +76,15 @@ export async function proxy(request: NextRequest) {
     // ── App (private sanctuary) ──────────────────────────────────────────
 
     // Allow public auth routes within the app experience
-    const isAuthRoute = pathname.startsWith('/auth') || pathname.startsWith('/invite')
+    const isAuthRoute =
+      pathname.startsWith('/sanctuary') ||
+      pathname.startsWith('/auth') ||
+      pathname.startsWith('/invite')
 
     if (!user && !isAuthRoute) {
       // Unauthenticated → redirect to login with return URL
       const loginUrl = request.nextUrl.clone()
-      loginUrl.pathname = '/app/auth/login'
+      loginUrl.pathname = '/sanctuary/login'
       loginUrl.searchParams.set('next', pathname)
       return NextResponse.redirect(loginUrl)
     }
