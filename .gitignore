@@ -9,11 +9,25 @@ out/
 build/
 dist/
 coverage/
+public/wasm/
 
 # Environment & Local Secrets
 .env
 .env*.local
 *.pem
+
+# Generated Deployment & Synapse Runtime State
+infra/matrix/data/
+infra/nginx/generated/
+infra/matrix/generated/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.ruff_cache/
 
 # Misc
 .DS_Store

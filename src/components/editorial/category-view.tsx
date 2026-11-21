@@ -1,17 +1,17 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen, Clock } from 'lucide-react'
-import { CURATED_ARTICLES, TOPIC_METADATA } from '@/lib/editorial/articles'
+import { TOPIC_METADATA } from '@/lib/editorial/articles'
+import { getEditorialCatalog } from '@/lib/editorial/catalog'
 import { ArticleFeed } from '@/components/editorial/article-feed'
-import { Button } from '@/components/ui/button'
 
 interface CategoryViewProps {
   categoryKey: keyof typeof TOPIC_METADATA
 }
 
-export function CategoryView({ categoryKey }: CategoryViewProps) {
+export async function CategoryView({ categoryKey }: CategoryViewProps) {
   const meta = TOPIC_METADATA[categoryKey]
-  const articles = CURATED_ARTICLES.filter((a) => a.category === categoryKey)
+  const articles = await getEditorialCatalog({ category: categoryKey })
 
   const totalReadingTime = articles.reduce((sum, a) => sum + a.readingDurationMinutes, 0)
 

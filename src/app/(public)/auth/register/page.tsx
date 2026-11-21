@@ -8,12 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Input, PasswordInput } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusBanner } from '@/components/ui/status-banner'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseClientConfigured } from '@/lib/supabase/client'
+import { safeRedirectPath } from '@/lib/utils'
 
 function RegisterForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/'
+  const next = safeRedirectPath(searchParams.get('next'), '/')
 
   const [displayName, setDisplayName] = React.useState('')
   const [email, setEmail] = React.useState('')
@@ -21,11 +22,13 @@ function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [confirmationMessage, setConfirmationMessage] = React.useState<string | null>(null)
   const [success, setSuccess] = React.useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    setConfirmationMessage(null)
 
     if (password !== confirmPassword) {
       setError('Passwords do not match.')
@@ -34,6 +37,13 @@ function RegisterForm() {
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.')
+      return
+    }
+
+    if (!isSupabaseClientConfigured()) {
+      setError(
+        'Registration requires NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.',
+      )
       return
     }
 
@@ -52,19 +62,22 @@ function RegisterForm() {
       })
 
       if (authError) {
-        if (authError.message.includes('placeholder') || authError.message.includes('fetch failed')) {
-          setSuccess(true)
-          setTimeout(() => router.push(next), 900)
-          return
-        }
         setError(authError.message)
         return
       }
 
+      if (!data.session && data.user) {
+        setConfirmationMessage(
+          `Check ${email} to verify your address before signing in.`,
+        )
+        return
+      }
+
       setSuccess(true)
-      setTimeout(() => router.push(next), 1200)
-    } catch (err: any) {
-      setError(err?.message || 'Unable to create account. Please try again.')
+      router.push(next)
+      router.refresh()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to create account. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -87,6 +100,14 @@ function RegisterForm() {
 
       {error && (
         <StatusBanner tone="error" title="Registration Issue" description={error} />
+      )}
+
+      {confirmationMessage && (
+        <StatusBanner
+          tone="info"
+          title="Confirm Your Email"
+          description={confirmationMessage}
+        />
       )}
 
       {success && (
@@ -151,6 +172,25 @@ function RegisterForm() {
           <span>Create Reader Account</span>
           <ArrowRight className="h-4 w-4 ml-1.5" />
         </Button>
+
+        {!isSupabaseClientConfigured() && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              if (typeof window !== 'undefined' && (displayName.trim() || email.trim())) {
+                window.localStorage.setItem(
+                  'project00_editorial_reader_name',
+                  displayName.trim() || email.trim(),
+                )
+              }
+              router.push(next)
+            }}
+          >
+            Continue in Local Browser Mode
+          </Button>
+        )}
 
         <div className="pt-4 border-t border-[var(--border)] text-center text-xs text-[var(--muted-foreground)]">
           Already have an account?{' '}

@@ -2,17 +2,138 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Gamepad2, Sparkles, Clock, Users, ArrowRight, Play, Trophy } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Gamepad2, Clock, Users, Play, Trophy, ArrowRight } from 'lucide-react'
 import { GAME_TEMPLATES } from '@/lib/games/data'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusBanner } from '@/components/ui/status-banner'
+import { useSanctuary } from '@/components/providers/sanctuary-provider'
+import {
+  createLocalGameSession,
+  listLocalGames,
+  subscribeLocalSanctuary,
+} from '@/lib/sanctuary/local-store'
+
+interface GameSessionSummary {
+  id: string
+  space_id: string
+  game_type: string
+  status: string
+  question_ids: string[]
+  current_q_idx: number
+  created_at?: string | null
+}
+
+const GAME_TYPE_LABELS: Record<string, string> = {
+  couple_trivia: 'Couple Trivia',
+  would_you_rather: 'Would You Rather',
+  compatibility: 'Compatibility Check',
+  truth_or_dare: 'Truth or Dare',
+  deep_questions: 'Deep Questions',
+}
 
 export default function GamesHubPage() {
+  const router = useRouter()
+  const { activeSpaceId, configured, loading } = useSanctuary()
   const [activeTab, setActiveTab] = React.useState<string>('all')
+  const [sessionsRecord, setSessionsRecord] = React.useState<{
+    spaceId: string
+    items: GameSessionSummary[]
+  }>({ spaceId: '', items: [] })
+  const [startingTemplateId, setStartingTemplateId] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
 
-  const filteredGames = activeTab === 'all'
-    ? GAME_TEMPLATES
-    : GAME_TEMPLATES.filter((g) => g.category === activeTab)
+  const targetSpaceId = activeSpaceId ?? (!loading && !configured ? 'space-1' : null)
+
+  const sessions =
+    targetSpaceId && sessionsRecord.spaceId === targetSpaceId
+      ? sessionsRecord.items
+      : []
+
+  const loadLocalSessions = React.useCallback((spaceId: string) => {
+    const localItems = listLocalGames(spaceId)
+    const mapped: GameSessionSummary[] = localItems.map((g) => {
+      const tpl = GAME_TEMPLATES.find((t) => t.id === g.templateId)
+      return {
+        id: g.id,
+        space_id: g.spaceId,
+        game_type: g.category,
+        status: g.status,
+        question_ids: tpl ? tpl.questions.map((q) => q.id) : [],
+        current_q_idx: g.currentQuestionIndex,
+        created_at: g.createdAt,
+      }
+    })
+    setSessionsRecord({ spaceId, items: mapped })
+  }, [])
+
+  React.useEffect(() => {
+    if (!targetSpaceId) return
+
+    if (!configured && !loading) {
+      Promise.resolve().then(() => loadLocalSessions(targetSpaceId))
+      return subscribeLocalSanctuary(() => loadLocalSessions(targetSpaceId))
+    }
+
+    if (!configured) return
+
+    let active = true
+    fetch(`/api/games/sessions?spaceId=${encodeURIComponent(targetSpaceId)}`, {
+      cache: 'no-store',
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        if (active && Array.isArray(payload?.sessions)) {
+          setSessionsRecord({
+            spaceId: targetSpaceId,
+            items: payload.sessions as GameSessionSummary[],
+          })
+        }
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [configured, loading, targetSpaceId, loadLocalSessions])
+
+  const filteredGames =
+    activeTab === 'all'
+      ? GAME_TEMPLATES
+      : GAME_TEMPLATES.filter((g) => g.category === activeTab)
+
+  const handleStartGame = async (templateId: string) => {
+    setError(null)
+    if (!configured) {
+      const sid = targetSpaceId ?? 'space-1'
+      const created = createLocalGameSession(sid, templateId)
+      router.push(`/games/${created.id}`)
+      return
+    }
+    if (!activeSpaceId) {
+      router.push(`/games/${templateId}`)
+      return
+    }
+    setStartingTemplateId(templateId)
+    try {
+      const res = await fetch('/api/games/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ spaceId: activeSpaceId, templateId }),
+      })
+      const payload = await res.json()
+      if (!res.ok) {
+        setError(payload?.detail || payload?.error || 'Could not start game session.')
+        return
+      }
+      const sid = payload?.session?.id || templateId
+      router.push(`/games/${sid}`)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to start game.')
+    } finally {
+      setStartingTemplateId(null)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-10">
@@ -25,7 +146,7 @@ export default function GamesHubPage() {
           Games, Quizzes &amp; Play
         </h1>
         <p className="text-sm text-[var(--muted-foreground)] max-w-xl">
-          Lighthearted, intimate games designed for two. All answers are kept hidden until both of you submit.
+          Lighthearted, intimate games designed for two. All answers stay hidden until both partners submit.
         </p>
 
         {/* Filter Tabs */}
@@ -39,6 +160,7 @@ export default function GamesHubPage() {
           ].map((tab) => (
             <button
               key={tab.id}
+              type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`px-3 py-1 text-xs rounded-full transition-colors cursor-pointer border ${
                 activeTab === tab.id
@@ -51,6 +173,49 @@ export default function GamesHubPage() {
           ))}
         </div>
       </header>
+
+      {error && (
+        <StatusBanner tone="error" title="Game Session Issue" description={error} />
+      )}
+
+      {configured && !activeSpaceId && (
+        <StatusBanner
+          tone="info"
+          title="No Private Space Selected"
+          description="Create or join a private space on Sanctuary Home first to play live blind-reveal games with your partner."
+        />
+      )}
+
+      {/* Active & Recent Live Sessions */}
+      {sessions.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-[family-name:var(--ds-font-display)] text-lg font-semibold text-[var(--foreground)] flex items-center gap-2">
+            <Trophy className="h-4 w-4 text-[var(--primary)]" />
+            <span>Your Sanctuary Sessions</span>
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sessions.slice(0, 6).map((s) => (
+              <Link
+                key={s.id}
+                href={`/games/${s.id}`}
+                className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-4 flex items-center justify-between hover:border-[var(--primary)] transition-colors"
+              >
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-[var(--foreground)]">
+                    {GAME_TYPE_LABELS[s.game_type] ?? s.game_type}
+                  </div>
+                  <div className="text-xs text-[var(--muted-foreground)]">
+                    Round {Math.min((s.current_q_idx || 0) + 1, Math.max(s.question_ids?.length || 1, 1))} of{' '}
+                    {s.question_ids?.length || 1} ·{' '}
+                    <span className="capitalize">{s.status}</span>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-[var(--primary)] shrink-0" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Game Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -91,11 +256,14 @@ export default function GamesHubPage() {
                 {game.questionCount} Rounds
               </Badge>
 
-              <Button size="sm" variant="primary" asChild>
-                <Link href={`/games/${game.id}`}>
-                  <Play className="h-3.5 w-3.5 mr-1" />
-                  <span>Start Game</span>
-                </Link>
+              <Button
+                size="sm"
+                variant="primary"
+                isLoading={startingTemplateId === game.id}
+                onClick={() => void handleStartGame(game.id)}
+              >
+                <Play className="h-3.5 w-3.5 mr-1" />
+                <span>{configured ? 'Start Live Session' : 'Play 2-Player Sandbox'}</span>
               </Button>
             </div>
           </div>
@@ -104,4 +272,3 @@ export default function GamesHubPage() {
     </div>
   )
 }
-

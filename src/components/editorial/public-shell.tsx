@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Bookmark, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useDesignSystem } from "@/components/providers/design-system-provider";
+import { useEditorialLibrary } from "@/lib/editorial/library-store";
 
 export interface NavItem {
   label: string;
@@ -45,8 +47,14 @@ export function PublicShell({
   savedHref = "/saved",
   signInHref = "/auth/login",
 }: PublicShellProps) {
-  const { mode, toggleMode } = useDesignSystem();
+  const pathname = usePathname() ?? "/";
+  const { mode, toggleMode, setEnvironment } = useDesignSystem();
+  const { savedIds } = useEditorialLibrary();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setEnvironment("editorial");
+  }, [setEnvironment]);
 
   React.useEffect(() => {
     if (!mobileMenuOpen) return;
@@ -77,21 +85,28 @@ export function PublicShell({
             </Link>
 
             <nav aria-label="Editorial topics" className="hidden lg:flex items-center gap-5">
-              {navItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  aria-current={item.active ? "page" : undefined}
-                  className={cn(
-                    "text-sm transition-colors hover:text-[var(--foreground)]",
-                    item.active
-                      ? "font-medium text-[var(--foreground)] underline underline-offset-8 decoration-[var(--primary)]"
-                      : "text-[var(--muted-foreground)]",
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {navItems.map((item) => {
+                const isActive =
+                  item.active ??
+                  (item.href === "/"
+                    ? pathname === "/"
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`));
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "text-sm transition-colors hover:text-[var(--foreground)]",
+                      isActive
+                        ? "font-medium text-[var(--foreground)] underline underline-offset-8 decoration-[var(--primary)]"
+                        : "text-[var(--muted-foreground)]",
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
 
@@ -113,9 +128,14 @@ export function PublicShell({
               )}
             </Button>
 
-            <Button variant="ghost" size="icon" asChild>
-              <Link href={savedHref} aria-label="Saved articles">
+            <Button variant="ghost" size="icon" asChild className="relative">
+              <Link href={savedHref} aria-label={`Saved articles (${savedIds.length})`}>
                 <Bookmark className="h-4 w-4" aria-hidden="true" />
+                {savedIds.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-medium text-[var(--primary-foreground)]">
+                    {savedIds.length}
+                  </span>
+                )}
               </Link>
             </Button>
 
@@ -137,12 +157,14 @@ export function PublicShell({
               <Link href={signInHref}>Sign in</Link>
             </Button>
 
-            {/* Quick Sanctuary access pill (Discreet / Dev helper) */}
-            <Button variant="primary" size="sm" asChild className="hidden md:inline-flex ml-1">
-              <Link href="/home" title="Enter private Sanctuary chat & games">
-                <span>Sanctuary</span>
-              </Link>
-            </Button>
+            {/* Quick Sanctuary access pill (Development helper only) */}
+            {process.env.NODE_ENV === "development" && (
+              <Button variant="primary" size="sm" asChild className="hidden md:inline-flex ml-1">
+                <Link href="/home" title="Enter private Sanctuary chat & games">
+                  <span>Sanctuary</span>
+                </Link>
+              </Button>
+            )}
 
             <Button
               type="button"
@@ -186,13 +208,15 @@ export function PublicShell({
               >
                 Sign in
               </Link>
-              <Link
-                href="/home"
-                onClick={() => setMobileMenuOpen(false)}
-                className="min-h-11 flex items-center rounded-[var(--ds-radius)] px-3 text-base font-medium text-[var(--primary)] hover:bg-[var(--muted)]"
-              >
-                Enter Sanctuary &rarr;
-              </Link>
+              {process.env.NODE_ENV === "development" && (
+                <Link
+                  href="/home"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="min-h-11 flex items-center rounded-[var(--ds-radius)] px-3 text-base font-medium text-[var(--primary)] hover:bg-[var(--muted)]"
+                >
+                  Enter Sanctuary &rarr;
+                </Link>
+              )}
             </nav>
           </div>
         )}

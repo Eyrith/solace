@@ -3,42 +3,50 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { KeyRound, ArrowRight, ShieldCheck, HeartHandshake } from 'lucide-react'
+import { ArrowRight, HeartHandshake } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input, PasswordInput } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusBanner } from '@/components/ui/status-banner'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseClientConfigured } from '@/lib/supabase/client'
+import { updateLocalProfile } from '@/lib/sanctuary/local-store'
+import { safeRedirectPath } from '@/lib/utils'
 
 function AppLoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/home'
+  const next = safeRedirectPath(searchParams.get('next'), '/home')
 
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [loading, setLoading] = React.useState(false)
+  const [resetLoading, setResetLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [notice, setNotice] = React.useState<string | null>(null)
   const [success, setSuccess] = React.useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setNotice(null)
+
+    if (!isSupabaseClientConfigured()) {
+      setLoading(false)
+      setError(
+        'Supabase authentication is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.',
+      )
+      return
+    }
 
     try {
       const supabase = createClient()
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (authError) {
-        if (authError.message.includes('placeholder') || authError.message.includes('fetch failed')) {
-          setSuccess(true)
-          setTimeout(() => router.push(next), 600)
-          return
-        }
         setError(authError.message)
         return
       }
@@ -46,10 +54,43 @@ function AppLoginForm() {
       setSuccess(true)
       router.push(next)
       router.refresh()
-    } catch (err: any) {
-      setError(err?.message || 'Authentication error. Please check your inputs.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Authentication error. Please check your inputs.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    setError(null)
+    setNotice(null)
+    if (!email.trim()) {
+      setError('Enter your account email first to send a password reset link.')
+      return
+    }
+    if (!isSupabaseClientConfigured()) {
+      setError(
+        'Password reset requires NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.',
+      )
+      return
+    }
+
+    setResetLoading(true)
+    try {
+      const supabase = createClient()
+      const redirectTo = `${window.location.origin}/sanctuary/login`
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
+      })
+      if (resetError) {
+        setError(resetError.message)
+        return
+      }
+      setNotice('If an account exists for that email, a password reset link has been sent.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not send reset email.')
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -69,6 +110,10 @@ function AppLoginForm() {
 
       {error && (
         <StatusBanner tone="error" title="Sign In Issue" description={error} />
+      )}
+
+      {notice && (
+        <StatusBanner tone="info" title="Password Reset" description={notice} />
       )}
 
       {success && (
@@ -94,7 +139,17 @@ function AppLoginForm() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="app-password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="app-password">Password</Label>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={resetLoading}
+              className="text-[11px] text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer disabled:opacity-50"
+            >
+              {resetLoading ? 'Sending...' : 'Forgot password?'}
+            </button>
+          </div>
           <PasswordInput
             id="app-password"
             required
@@ -110,13 +165,29 @@ function AppLoginForm() {
           <ArrowRight className="h-4 w-4 ml-1.5" />
         </Button>
 
+        {!isSupabaseClientConfigured() && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              if (email.trim()) {
+                updateLocalProfile({ email: email.trim() })
+              }
+              router.push(next)
+            }}
+          >
+            Enter Local Sanctuary Sandbox
+          </Button>
+        )}
+
         <div className="pt-3 border-t border-[var(--border)] text-center text-xs text-[var(--muted-foreground)]">
-          Have an invitation link?{' '}
+          Need a private account?{' '}
           <Link
-            href="/invite/demo"
+            href={`/sanctuary/register${next !== '/home' ? `?next=${encodeURIComponent(next)}` : ''}`}
             className="text-[var(--primary)] font-medium hover:underline"
           >
-            Claim invitation
+            Create sanctuary account
           </Link>
         </div>
       </form>

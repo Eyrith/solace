@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.git/
+backend/
+infra/matrix/data/
+.env
+.env.local
+.env.*.local
+

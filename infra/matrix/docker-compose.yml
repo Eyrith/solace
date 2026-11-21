@@ -1,0 +1,39 @@
+services:
+  synapse-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: ${SYNAPSE_POSTGRES_PASSWORD:-change-me-strong-password}
+      POSTGRES_DB: synapse
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - synapse_pgdata:/var/lib/postgresql/data
+    networks:
+      - matrix_internal
+
+  synapse:
+    image: ghcr.io/element-hq/synapse:v1.165.0
+    restart: unless-stopped
+    depends_on:
+      - synapse-postgres
+    environment:
+      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
+    ports:
+      # Bind only to loopback; terminate TLS + CORS via Nginx reverse proxy
+      - "127.0.0.1:8008:8008"
+      # Federation port 8448 intentionally NOT exposed (closed single-server deployment)
+    volumes:
+      - ./data:/data
+      - synapse_media:/data/media_store
+    networks:
+      - matrix_internal
+
+volumes:
+  synapse_pgdata:
+  synapse_media:
+
+networks:
+  matrix_internal:
+    driver: bridge
+

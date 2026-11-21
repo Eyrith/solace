@@ -15,23 +15,24 @@
 │  app.example.com ──► Private Sanctuary (requires login)         │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ HTTPS
-                     ┌─────▼──────┐
-                     │   Vercel   │  CDN + Edge Runtime
-                     │  Next.js   │  Single codebase, host routing
-                     └─────┬──────┘
-          ┌────────────────┼────────────────┐
-          │                │                │
-    ┌─────▼──────┐  ┌──────▼──────┐  ┌─────▼──────┐
-    │ Supabase   │  │  LiveKit    │  │  External  │
-    │ PostgreSQL │  │  Cloud      │  │  RSS Feeds │
-    │ Auth       │  │  (video/    │  │  (Psyche,  │
-    │ Storage    │  │   audio)    │  │  Aeon etc.)│
-    │ Realtime   │  └─────────────┘  └────────────┘
-    │ Edge Fns   │
-    └────────────┘
+                     ┌─────▼──────────────┐
+                     │  Next.js Frontend  │  www.* / app.* SSR + Client E2EE
+                     └─────────┬──────────┘
+                               │ /api/* proxy rewrite
+                     ┌─────────▼──────────┐
+                     │ Python FastAPI API │  backend/ (auth bridge, Matrix BFF,
+                     │  + Async Workers   │  LiveKit tokens, RSS, retention)
+                     └─────────┬──────────┘
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+    ┌─────▼──────┐      ┌──────▼──────┐      ┌──────▼──────┐
+    │  Supabase  │      │   Synapse   │      │   LiveKit   │
+    │ PostgreSQL │      │  Homeserver │      │     SFU     │
+    │ Auth + RLS │      │ (Encrypted) │      │ (WebRTC)    │
+    └────────────┘      └─────────────┘      └─────────────┘
 ```
 
-**Core principle:** One Next.js codebase, two distinct runtime experiences split by hostname at the middleware layer. No second server. No separate API service. Supabase is the only database/auth/realtime provider.
+**Core principle:** Next.js + TypeScript power the dual editorial/Sanctuary UI and client-side Matrix E2EE (`matrix-js-sdk` WASM crypto in browser). Python (`FastAPI` in `backend/`) handles all custom backend API routes, auth session verification, Synapse admin provisioning/media governance, LiveKit token signing, RSS feed ingestion, webhooks, and scheduled retention workers. Supabase (PostgreSQL/Auth/RLS), Synapse, and LiveKit remain independent services.
 
 ---
 
@@ -94,15 +95,17 @@ src/app/
 │   └── invite/
 │       └── [token]/
 │
-├── api/                   ← Next.js Route Handlers (server-side only)
-│   ├── auth/
-│   │   └── callback/      ← Supabase OAuth callback
-│   ├── livekit/
-│   │   └── token/         ← LiveKit JWT minting (private endpoint)
-│   ├── feeds/
-│   │   └── sync/          ← RSS ingestion trigger
-│   └── webhooks/
-│       └── supabase/      ← Supabase webhook receiver
+├── api/                   ← Proxied via src/proxy.ts / Nginx to FastAPI (`backend/app/routers/`)
+│   ├── health             ← Backend readiness check
+│   ├── auth/callback      ← Supabase OAuth PKCE exchange
+│   ├── matrix/*           ← Synapse session minting & metadata-only admin media controls
+│   ├── media/upload       ← Fail-closed 410 Gone guard against plaintext uploads
+│   ├── spaces/*           ← Private spaces & single-use invitations
+│   ├── messages/*         ← Disappearing message metadata & mark_message_viewed RPC
+│   ├── livekit/token      ← LiveKit WebRTC JWT minting (python livekit-api)
+│   ├── feeds/sync         ← Editorial RSS ingestion (feedparser)
+│   ├── cron/retention     ← Scheduled ephemeral ciphertext & message purge
+│   └── webhooks/*         ← Supabase & LiveKit signed webhooks
 │
 ├── design-system/         ← DEV ONLY workbench (strip in prod)
 └── preview/               ← DEV ONLY previews (strip in prod)
@@ -115,26 +118,33 @@ src/app/
 ### Layering Rules (strict)
 
 ```
-src/
-├── lib/                   ← Pure utilities, no React, no side effects
+src/                       ← Next.js + TypeScript Frontend & Browser Cryptography
+├── lib/                   ← Client-side utilities & static catalogs
 │   ├── utils.ts           ← cn(), formatDuration(), etc.
 │   ├── design-system/     ← Token types and font loaders
-│   ├── supabase/          ← Supabase client factories (server + browser)
-│   ├── livekit/           ← Token signing helpers
-│   ├── feeds/             ← RSS parser utilities
-│   └── validations/       ← Zod schemas for all forms and API payloads
+│   ├── supabase/          ← Browser Supabase client & database types
+│   ├── matrix/            ← Client-side E2EE lifecycle & AES-256-CTR media helpers
+│   ├── editorial/         ← Curated catalog & client library hooks
+│   └── games/ & questions/← Interactive prompt catalogs
 │
 ├── components/
 │   ├── ui/                ← Primitive, context-free UI atoms
 │   │   └── (button, input, card, dialog, toast, etc.)
-│   ├── providers/         ← Context providers (DesignSystem, Auth, etc.)
+│   ├── providers/         ← Context providers (DesignSystem, MatrixProvider)
 │   ├── editorial/         ← Public portal composite components
 │   │   └── (PublicShell, ArticleCard, PublicationCard, SearchBar, etc.)
 │   └── sanctuary/         ← Private app composite components
 │       └── (PrivateShell, ChatBubble, ChatComposer, VoiceNotePlayer, etc.)
 │
-└── app/                   ← Next.js App Router pages + route handlers
-    └── (page and layout files only — no business logic here)
+└── app/                   ← Next.js App Router UI pages (proxy.ts handles host routing)
+
+backend/app/               ← Python 3.12 + FastAPI Backend Service
+├── core/                  ← Settings, typed errors, Supabase SSR cookie/JWT auth
+├── db/                    ← Async Supabase PostgREST/Auth/Storage/RPC gateway
+├── schemas/               ← Pydantic request/response contracts
+├── services/              ← Synapse admin, Matrix auth, LiveKit tokens, feeds, retention
+├── routers/               ← FastAPI `/api/*` endpoints
+└── workers/               ← APScheduler periodic RSS & retention jobs
 ```
 
 **Rules:**
@@ -317,20 +327,20 @@ Download → Server-side signed URL (expires in 1 hour)
 
 ### LiveKit Cloud
 
-- Server-side token minting only (`src/app/api/livekit/token/route.ts`)
+- Server-side token minting only (`backend/app/routers/livekit.py` via `livekit-api`)
 - Token claims: `room = space_id`, `identity = user_id`
 - Room created on-demand when first participant joins
 - Room auto-deletes after all participants leave
-- Webhook: `participant_joined`, `participant_left`, `room_ended` → update call_sessions table
+- Webhook: `POST /api/webhooks/livekit` (`participant_joined`, `room_ended`) → updates `call_sessions` table
 
-### Supabase Edge Functions
+### Python FastAPI Background Jobs & Cron (`backend/app/workers/scheduler.py`)
 
-| Function | Trigger | Purpose |
+| Job / Endpoint | Trigger | Purpose |
 |---|---|---|
-| `sync-feeds` | pg_cron every 2h | Fetch and upsert RSS items |
-| `cleanup-expired-messages` | pg_cron every 60s | Hard-delete expired messages + media |
-| `send-anniversary-reminders` | pg_cron daily at 08:00 | Email reminders for calendar events |
-| `livekit-webhook` | HTTP POST from LiveKit | Update call_sessions table |
+| `GET /api/feeds/sync` | APScheduler every 2h / cron | Fetch and upsert RSS items via `feedparser` |
+| `POST /api/cron/retention` | APScheduler every 60s / cron | Purge expired Synapse encrypted blobs (`ephemeral_media_timers`) + DB messages |
+| `POST /api/webhooks/livekit` | HTTP POST from LiveKit | Signed webhook updating `call_sessions` table |
+| `POST /api/webhooks/supabase` | HTTP POST from Supabase | Clean up orphaned `sanctuary-media` storage objects on delete |
 
 ---
 
@@ -353,6 +363,11 @@ NEXT_PUBLIC_LIVEKIT_URL=           # wss://your-project.livekit.cloud
 NEXT_PUBLIC_APP_URL=               # https://app.example.com
 NEXT_PUBLIC_PUBLIC_URL=            # https://www.example.com
 NEXT_PUBLIC_DEFAULT_HOST=          # 'public' | 'app' (dev routing)
+
+# FastAPI Proxy
+APP_ENV=development
+BACKEND_INTERNAL_URL=http://127.0.0.1:8000
+ENABLE_BACKGROUND_WORKER=false
 ```
 
 ---

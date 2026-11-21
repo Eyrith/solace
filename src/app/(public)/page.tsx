@@ -1,7 +1,7 @@
 import * as React from 'react'
 import Link from 'next/link'
-import { ArrowRight, Compass, Sparkles, BookOpen, ExternalLink } from 'lucide-react'
-import { CURATED_ARTICLES } from '@/lib/editorial/articles'
+import { ArrowRight, Compass, Sparkles, BookOpen } from 'lucide-react'
+import { getEditorialCatalog } from '@/lib/editorial/catalog'
 import { EDITORIAL_PUBLICATIONS } from '@/lib/editorial/sources'
 import { ArticleFeed } from '@/components/editorial/article-feed'
 import { PublicationCard } from '@/components/editorial/publication-card'
@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button'
 
 export const revalidate = 3600 // 1 hour ISR
 
-export default function PublicHomePage() {
-  const featuredArticles = CURATED_ARTICLES.filter((a) => a.isFeatured)
-  const psychologyArticles = CURATED_ARTICLES.filter((a) => a.category === 'psychology').slice(0, 3)
-  const relationshipArticles = CURATED_ARTICLES.filter((a) => a.category === 'relationships').slice(0, 3)
-  const philosophyArticles = CURATED_ARTICLES.filter((a) => a.category === 'philosophy').slice(0, 3)
+export default async function PublicHomePage() {
+  const catalog = await getEditorialCatalog()
+  const featuredArticles = catalog.filter((a) => a.isFeatured).slice(0, 4)
+  const psychologyArticles = catalog.filter((a) => a.category === 'psychology').slice(0, 3)
+  const relationshipArticles = catalog.filter((a) => a.category === 'relationships').slice(0, 3)
 
   return (
     <div className="space-y-16 py-8 sm:py-12">

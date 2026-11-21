@@ -1,13 +1,11 @@
 'use client'
 
 import * as React from 'react'
-import Link from 'next/link'
-import { Search, X, BookOpen, Clock, Tag, Sparkles } from 'lucide-react'
-import { CURATED_ARTICLES, type CuratedArticle } from '@/lib/editorial/articles'
+import { Search, X } from 'lucide-react'
+import { useEditorialCatalog } from '@/lib/editorial/use-catalog'
 import { EDITORIAL_PUBLICATIONS } from '@/lib/editorial/sources'
 import { ArticleFeed } from '@/components/editorial/article-feed'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 
 const POPULAR_SEARCH_TERMS = [
   'Vulnerability',
@@ -23,12 +21,13 @@ const POPULAR_SEARCH_TERMS = [
 ]
 
 export default function SearchPage() {
+  const { articles } = useEditorialCatalog()
   const [query, setQuery] = React.useState('')
   const [selectedCategory, setSelectedCategory] = React.useState('all')
   const [selectedPub, setSelectedPub] = React.useState('all')
 
   const results = React.useMemo(() => {
-    return CURATED_ARTICLES.filter((article) => {
+    return articles.filter((article) => {
       if (selectedCategory !== 'all' && article.category !== selectedCategory) return false
       if (selectedPub !== 'all' && article.publicationSlug !== selectedPub) return false
 
@@ -43,7 +42,7 @@ export default function SearchPage() {
 
       return inTitle || inDesc || inAuthor || inTags || inTakeaway
     })
-  }, [query, selectedCategory, selectedPub])
+  }, [articles, query, selectedCategory, selectedPub])
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-8">

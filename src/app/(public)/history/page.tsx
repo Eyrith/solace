@@ -3,14 +3,15 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Clock, Trash2, ShieldCheck, ExternalLink } from 'lucide-react'
-import { CURATED_ARTICLES } from '@/lib/editorial/articles'
+import { useEditorialCatalog } from '@/lib/editorial/use-catalog'
 import { useEditorialLibrary } from '@/lib/editorial/library-store'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 
 export default function ReadingHistoryPage() {
-  const { history, historyEnabled, setHistoryTracking, clearHistory, isLoaded } =
+  const { history, historyEnabled, setHistoryTracking, clearHistory, isLoaded, serverSynced } =
     useEditorialLibrary()
+  const { articles } = useEditorialCatalog()
 
   if (!isLoaded) {
     return (
@@ -23,7 +24,7 @@ export default function ReadingHistoryPage() {
   // Map history to articles with timestamp
   const historyEntries = history
     .map((item) => {
-      const article = CURATED_ARTICLES.find((a) => a.id === item.articleId)
+      const article = articles.find((a) => a.id === item.articleId)
       return { ...item, article }
     })
     .filter((entry): entry is typeof entry & { article: NonNullable<typeof entry.article> } =>
@@ -46,7 +47,9 @@ export default function ReadingHistoryPage() {
               Reading History
             </h1>
             <p className="text-sm text-[var(--muted-foreground)] font-light">
-              A private log of recent essays opened from this device. All records remain purely in client storage.
+              {serverSynced
+                ? 'Your private log of opened essays, synced to your reader account.'
+                : 'A private log of recent essays opened from this device in browser storage.'}
             </p>
           </div>
 

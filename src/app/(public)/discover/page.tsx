@@ -1,13 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { CURATED_ARTICLES, type CuratedArticle } from '@/lib/editorial/articles'
+import { useEditorialCatalog } from '@/lib/editorial/use-catalog'
 import { EDITORIAL_PUBLICATIONS } from '@/lib/editorial/sources'
 import { ArticleFeed } from '@/components/editorial/article-feed'
 import { Input } from '@/components/ui/input'
-import { Search, Filter, SlidersHorizontal } from 'lucide-react'
+import { Search, Filter } from 'lucide-react'
 
 export default function DiscoverPage() {
+  const { articles } = useEditorialCatalog()
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all')
   const [selectedPublication, setSelectedPublication] = React.useState<string>('all')
   const [searchQuery, setSearchQuery] = React.useState<string>('')
@@ -21,7 +22,7 @@ export default function DiscoverPage() {
     { id: 'literature', label: 'Literature' },
   ]
 
-  const filteredArticles = CURATED_ARTICLES.filter((article) => {
+  const filteredArticles = articles.filter((article) => {
     if (selectedCategory !== 'all' && article.category !== selectedCategory) {
       return false
     }
@@ -49,7 +50,7 @@ export default function DiscoverPage() {
           Discover Inquiries &amp; Essays
         </h1>
         <p className="text-sm sm:text-base text-[var(--muted-foreground)] max-w-2xl font-light">
-          Browse through {CURATED_ARTICLES.length} curated essays examining human emotion, social connection, and philosophical clarity.
+          Browse through {articles.length} curated essays examining human emotion, social connection, and philosophical clarity.
         </p>
 
         {/* Search bar inside Discover */}

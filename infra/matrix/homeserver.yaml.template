@@ -1,0 +1,93 @@
+# Synapse Homeserver Template — Private Locked-Down Configuration
+# Based on Synapse v1.165.0 (AGPLv3, run unmodified as isolated messaging server).
+# Replace <MATRIX_SERVER_NAME>, <POSTGRES_PASSWORD>, and <GENERATED_SECRETS>.
+
+server_name: "<MATRIX_SERVER_NAME>"
+pid_file: /data/homeserver.pid
+web_client_location: "https://app.example.com"
+public_baseurl: "https://matrix.example.com/"
+
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+    bind_addresses: ["0.0.0.0"]
+    resources:
+      - names: [client]
+        compress: false
+      # Federation resource intentionally omitted so server-to-server endpoints are disabled.
+
+# Closed private homeserver: zero external federation, zero open public registration
+federation_domain_whitelist: []
+allow_public_rooms_over_federation: false
+enable_registration: false
+enable_registration_without_verification: false
+
+# Only allow authorized server admins / provisioning bot to initiate cross-room invites
+block_non_admin_invites: true
+encryption_enabled_by_default_for_room_type: all
+
+# Adjust BFF internal login burst while enforcing strict edge rate limits at Nginx
+rc_login:
+  address:
+    per_second: 5
+    burst_count: 100
+  account:
+    per_second: 1
+    burst_count: 20
+  failed_attempts:
+    per_second: 0.1
+    burst_count: 10
+
+# Restrict client media & require authentication (MSC3916, enabled by default in Synapse >= 1.113)
+enable_authenticated_media: true
+max_upload_size: 50M
+url_preview_enabled: false
+
+# Media retention & automatic purge of old ciphertext media blobs
+media_store_path: /data/media_store
+media_retention:
+  local_media_lifetime: 90d
+  remote_media_lifetime: 7d
+
+# Room-level event retention (MSC1763) + automated purge sweeps
+retention:
+  enabled: true
+  allowed_lifetime_min: 1h
+  allowed_lifetime_max: 365d
+  purge_jobs:
+    - shortest_max_lifetime: 1h
+      longest_max_lifetime: 2d
+      interval: 1h
+    - shortest_max_lifetime: 2d
+      longest_max_lifetime: 365d
+      interval: 1d
+
+database:
+  name: psycopg2
+  args:
+    user: synapse
+    password: "<POSTGRES_PASSWORD>"
+    database: synapse
+    host: synapse-postgres
+    cp_min: 5
+    cp_max: 10
+
+# Optional Apache-2.0 synapse-user-restrictions module to block users from creating
+# arbitrary rooms or inviting unauthorized external accounts directly:
+# modules:
+#   - module: synapse_user_restrictions.UserRestrictionsModule
+#     config:
+#       rules:
+#         - match: "@sys_provisioner:.*"
+#           allow: [invite, create_room]
+#       default_deny: [invite, create_room]
+
+# Secrets (generate uniquely per environment)
+registration_shared_secret: "<GENERATE_HEX_32>"
+macaroon_secret_key: "<GENERATE_HEX_32>"
+form_secret: "<GENERATE_HEX_32>"
+signing_key_path: "/data/<MATRIX_SERVER_NAME>.signing.key"
+
+report_stats: false

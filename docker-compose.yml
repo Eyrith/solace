@@ -1,0 +1,107 @@
+services:
+  synapse-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: synapse
+      POSTGRES_PASSWORD: ${SYNAPSE_POSTGRES_PASSWORD:-change-me-strong-password}
+      POSTGRES_DB: synapse
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U synapse -d synapse"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - synapse_pgdata:/var/lib/postgresql/data
+    networks:
+      - sanctuary_internal
+
+  synapse:
+    image: ghcr.io/element-hq/synapse:v1.165.0
+    restart: unless-stopped
+    depends_on:
+      synapse-postgres:
+        condition: service_healthy
+    environment:
+      SYNAPSE_CONFIG_PATH: /data/homeserver.yaml
+    ports:
+      # Bind only to loopback; terminate TLS + CORS via Nginx reverse proxy
+      - "127.0.0.1:8008:8008"
+    volumes:
+      - ./infra/matrix/data:/data
+      - synapse_media:/data/media_store
+    networks:
+      - sanctuary_internal
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - synapse
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      BACKEND_INTERNAL_URL: http://backend:8000
+      MATRIX_HOMESERVER_INTERNAL_URL: http://synapse:8008
+      ENABLE_BACKGROUND_WORKER: ${ENABLE_BACKGROUND_WORKER:-true}
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - sanctuary_internal
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+        NEXT_PUBLIC_LIVEKIT_URL: ${NEXT_PUBLIC_LIVEKIT_URL:-}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_PUBLIC_URL: ${NEXT_PUBLIC_PUBLIC_URL:-http://localhost:3000}
+        NEXT_PUBLIC_DEFAULT_HOST: ${NEXT_PUBLIC_DEFAULT_HOST:-public}
+        NEXT_PUBLIC_MATRIX_HOMESERVER_URL: ${NEXT_PUBLIC_MATRIX_HOMESERVER_URL:-http://127.0.0.1:8008}
+        NEXT_PUBLIC_MATRIX_SERVER_NAME: ${NEXT_PUBLIC_MATRIX_SERVER_NAME:-sanctuary.local}
+        BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8000}
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      NODE_ENV: production
+      BACKEND_INTERNAL_URL: http://backend:8000
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3080}:3000"
+    networks:
+      - sanctuary_internal
+
+  gateway:
+    image: nginx:1.27-alpine
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+      - synapse
+    volumes:
+      - ./infra/nginx/generated/tunnel-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "127.0.0.1:${TUNNEL_GATEWAY_PORT:-8088}:8080"
+    networks:
+      - sanctuary_internal
+
+volumes:
+  synapse_pgdata:
+  synapse_media:
+
+networks:
+  sanctuary_internal:
+    driver: bridge

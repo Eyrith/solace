@@ -17,6 +17,16 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl
+
+  // ── 0. Forward all /api/* traffic dynamically to the Python FastAPI backend ─
+  if (pathname.startsWith('/api/') || pathname === '/api') {
+    const backendUrl = (
+      process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:8000'
+    ).replace(/\/+$/, '')
+    return NextResponse.rewrite(new URL(`${pathname}${search}`, backendUrl))
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   // ── 1. Refresh Supabase session ───────────────────────────────────────────
@@ -56,15 +66,27 @@ export async function proxy(request: NextRequest) {
 
   // ── 2. Determine which experience to serve ────────────────────────────────
   const host = request.headers.get('host') ?? ''
-  const { pathname } = request.nextUrl
 
   // Skip middleware for Next.js internals and static files
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
     pathname.includes('.') // static files
   ) {
     return supabaseResponse
+  }
+
+  // Guard internal design-system and preview routes in production builds
+  if (
+    (process.env.NODE_ENV === 'production' || process.env.APP_ENV === 'production') &&
+    (pathname === '/design-system' ||
+      pathname.startsWith('/design-system/') ||
+      pathname === '/preview' ||
+      pathname.startsWith('/preview/'))
+  ) {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/'
+    redirectUrl.search = ''
+    return NextResponse.redirect(redirectUrl, 308)
   }
 
   const isAppHost = host.startsWith('app.')

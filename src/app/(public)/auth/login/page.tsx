@@ -3,44 +3,49 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { BookOpen, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
+import { BookOpen, ArrowRight, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input, PasswordInput } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StatusBanner } from '@/components/ui/status-banner'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseClientConfigured } from '@/lib/supabase/client'
+import { safeRedirectPath } from '@/lib/utils'
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const next = searchParams.get('next') || '/'
+  const next = safeRedirectPath(searchParams.get('next'), '/')
 
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [loading, setLoading] = React.useState(false)
+  const [resetLoading, setResetLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [notice, setNotice] = React.useState<string | null>(null)
   const [success, setSuccess] = React.useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+    setNotice(null)
+
+    if (!isSupabaseClientConfigured()) {
+      setLoading(false)
+      setError(
+        'Supabase authentication is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.',
+      )
+      return
+    }
 
     try {
       const supabase = createClient()
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (authError) {
-        // If Supabase is in placeholder/mock mode during local dev, provide helpful message or pass through
-        if (authError.message.includes('placeholder') || authError.message.includes('fetch failed')) {
-          // Local demo sign-in
-          setSuccess(true)
-          setTimeout(() => router.push(next), 800)
-          return
-        }
         setError(authError.message)
         return
       }
@@ -48,10 +53,43 @@ function LoginForm() {
       setSuccess(true)
       router.push(next)
       router.refresh()
-    } catch (err: any) {
-      setError(err?.message || 'Unable to sign in. Please check your credentials.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in. Please check your credentials.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleForgotPassword = async () => {
+    setError(null)
+    setNotice(null)
+    if (!email.trim()) {
+      setError('Enter your email address first so we know where to send your reset link.')
+      return
+    }
+    if (!isSupabaseClientConfigured()) {
+      setError(
+        'Password reset requires NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.',
+      )
+      return
+    }
+
+    setResetLoading(true)
+    try {
+      const supabase = createClient()
+      const redirectTo = `${window.location.origin}/auth/login`
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo,
+      })
+      if (resetError) {
+        setError(resetError.message)
+        return
+      }
+      setNotice('If an account exists for that email, a password reset link has been sent.')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not send reset email.')
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -72,6 +110,10 @@ function LoginForm() {
 
       {error && (
         <StatusBanner tone="error" title="Sign In Issue" description={error} />
+      )}
+
+      {notice && (
+        <StatusBanner tone="info" title="Password Reset" description={notice} />
       )}
 
       {success && (
@@ -99,12 +141,14 @@ function LoginForm() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="login-password">Password</Label>
-            <Link
-              href="#forgot-password"
-              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)]"
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={resetLoading}
+              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--primary)] cursor-pointer disabled:opacity-50"
             >
-              Forgot password?
-            </Link>
+              {resetLoading ? 'Sending link...' : 'Forgot password?'}
+            </button>
           </div>
           <PasswordInput
             id="login-password"
@@ -120,6 +164,22 @@ function LoginForm() {
           <span>Sign In to Reader Library</span>
           <ArrowRight className="h-4 w-4 ml-1.5" />
         </Button>
+
+        {!isSupabaseClientConfigured() && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              if (typeof window !== 'undefined' && email.trim()) {
+                window.localStorage.setItem('project00_editorial_reader_name', email.trim())
+              }
+              router.push(next)
+            }}
+          >
+            Continue in Local Browser Mode
+          </Button>
+        )}
 
         <div className="pt-4 border-t border-[var(--border)] text-center text-xs text-[var(--muted-foreground)]">
           New to Commonplace?{' '}

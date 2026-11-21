@@ -1,16 +1,20 @@
 import * as React from 'react'
 import Link from 'next/link'
-import { ArrowLeft, BookOpen, ExternalLink } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { EDITORIAL_PUBLICATIONS } from '@/lib/editorial/sources'
-import { CURATED_ARTICLES } from '@/lib/editorial/articles'
+import { getEditorialCatalog } from '@/lib/editorial/catalog'
 import { PublicationCard } from '@/components/editorial/publication-card'
+
+export const revalidate = 3600
 
 export const metadata = {
   title: 'Publication Directory — Commonplace',
   description: 'Curated index of independent publications, journals, and educational initiatives.',
 }
 
-export default function PublicationsDirectoryPage() {
+export default async function PublicationsDirectoryPage() {
+  const catalog = await getEditorialCatalog()
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">
       <header className="border-b border-[var(--border)] pb-8 space-y-3">
@@ -31,7 +35,7 @@ export default function PublicationsDirectoryPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {EDITORIAL_PUBLICATIONS.map((pub) => {
-          const count = CURATED_ARTICLES.filter((a) => a.publicationSlug === pub.slug).length
+          const count = catalog.filter((a) => a.publicationSlug === pub.slug).length
           return (
             <PublicationCard
               key={pub.id}

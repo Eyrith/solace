@@ -13,50 +13,60 @@ app.example.com   → Private 2-person sanctuary (messaging, games, calls)
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router, TypeScript) |
-| Styling | Tailwind CSS v4 |
-| UI Primitives | Radix UI + custom design system |
-| Animation | Framer Motion |
-| Database | Supabase (PostgreSQL 15) |
-| Auth | Supabase Auth |
-| Realtime | Supabase Realtime |
-| Storage | Supabase Storage |
-| Video/Voice | LiveKit Cloud |
-| Deployment | Vercel |
+| Frontend | Next.js 16 (App Router, TypeScript), React 19 |
+| Client E2EE Messaging | `matrix-js-sdk` + `@matrix-org/matrix-sdk-crypto-wasm` + `matrix-encrypt-attachment` |
+| Backend API & Workers | Python 3.12 + FastAPI (`backend/`), `httpx`, `APScheduler` |
+| Styling & UI | Tailwind CSS v4 + Radix UI + Framer Motion |
+| Homeserver | Matrix Synapse (`v1.165.0`) + PostgreSQL 16 |
+| Database / Auth / Realtime | Supabase (PostgreSQL, Auth, RLS, Storage) |
+| Video/Voice | LiveKit (`@livekit/components-react` frontend + `livekit-api` Python tokens/webhooks) |
+| Containers | Docker Compose (`frontend`, `backend`, `synapse`, `synapse-postgres`) |
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js ≥ 20
-- A Supabase project (free tier works for development)
-- A LiveKit Cloud account (free tier works)
-- Vercel account (for deployment)
+- Python ≥ 3.12 & `uv` (`https://docs.astral.sh/uv/`)
+- Self-hosted Synapse (via `docker compose`) & a Supabase project
+- LiveKit project (for WebRTC calls)
 
 ### Local Development
 
 ```bash
-# 1. Install dependencies
+# 1. Install frontend dependencies (and WASM crypto artifacts)
 npm install
 
-# 2. Set up environment variables
-cp .env.example .env.local
-# Fill in your Supabase and LiveKit keys
+# 2. Install Python backend dependencies
+cd backend && uv sync && cd ..
 
-# 3. Run development server
+# 3. Set up environment variables
+cp .env.example .env.local
+# Fill in Supabase, Matrix Synapse, HMAC secrets, and LiveKit keys
+
+# 4. Run Python FastAPI backend (Terminal 1)
+cd backend && uv run uvicorn app.main:app --reload --port 8000
+
+# 5. Run Next.js frontend with /api/* rewrites to FastAPI (Terminal 2)
 npm run dev
 
-# 4. Visit http://localhost:3000
+# 6. Visit http://localhost:3000
 ```
 
 ### Commands
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Production build
-npm run start        # Start production server
+# Frontend
+npm run dev          # Start Next.js dev server (port 3000)
+npm run build        # Production frontend build
 npm run typecheck    # TypeScript type checking
+npm run test         # Vitest frontend/schema test suite
 npm run lint         # ESLint
+
+# Backend (run inside backend/)
+uv run uvicorn app.main:app --reload --port 8000
+uv run pytest -v     # Python FastAPI test suite
+uv run ruff check .  # Python linting
 ```
 
 ## Documentation

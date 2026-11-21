@@ -158,8 +158,11 @@ export interface MessageAttachment {
 
 export interface QuestionLibraryItem {
   id: string
+  slug: string | null
+  game_template_id: string | null
   category: QuestionCategory
   content: string
+  options: string[] | null
   is_custom: boolean
   created_by: string | null
   space_id: string | null
@@ -172,6 +175,23 @@ export interface DailyQuestion {
   question_id: string
   date: string  // ISO date string (YYYY-MM-DD)
   created_at: string
+}
+
+export interface DailyQuestionAnswer {
+  id: string
+  daily_question_id: string
+  space_id: string
+  user_id: string
+  answer: string
+  submitted_at: string
+}
+
+export interface SpaceMood {
+  id: string
+  space_id: string
+  user_id: string
+  mood: string
+  updated_at: string
 }
 
 export interface GameSession {
@@ -315,6 +335,8 @@ export interface UserPreferences {
   chat_background: string
   reduced_motion: boolean
   discreet_notifs: boolean
+  sound_enabled: boolean
+  call_alerts: boolean
   reading_history_enabled: boolean
   updated_at: string
 }
@@ -365,6 +387,8 @@ export const DEFAULT_USER_PREFERENCES: Omit<UserPreferences, 'user_id' | 'update
   chat_background: 'none',
   reduced_motion: false,
   discreet_notifs: true,
+  sound_enabled: true,
+  call_alerts: true,
   reading_history_enabled: false,
 }
 

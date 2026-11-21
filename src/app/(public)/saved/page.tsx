@@ -2,16 +2,17 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Bookmark, Trash2, Compass } from 'lucide-react'
-import { CURATED_ARTICLES } from '@/lib/editorial/articles'
+import { ArrowLeft, Bookmark, Compass } from 'lucide-react'
+import { useEditorialCatalog } from '@/lib/editorial/use-catalog'
 import { useEditorialLibrary } from '@/lib/editorial/library-store'
 import { ArticleFeed } from '@/components/editorial/article-feed'
 import { Button } from '@/components/ui/button'
 
 export default function SavedArticlesPage() {
-  const { savedIds, isLoaded } = useEditorialLibrary()
+  const { savedIds, isLoaded, serverSynced } = useEditorialLibrary()
+  const { articles } = useEditorialCatalog()
 
-  const savedArticles = CURATED_ARTICLES.filter((a) => savedIds.includes(a.id))
+  const savedArticles = articles.filter((a) => savedIds.includes(a.id))
 
   if (!isLoaded) {
     return (
@@ -37,7 +38,9 @@ export default function SavedArticlesPage() {
               Saved Inquiries
             </h1>
             <p className="text-sm text-[var(--muted-foreground)] font-light">
-              Essays and articles bookmarked for quiet contemplation. Stored locally in your browser session.
+              {serverSynced
+                ? 'Essays bookmarked across your reader account.'
+                : 'Essays and articles bookmarked for quiet contemplation in this browser session.'}
             </p>
           </div>
           <div className="text-xs text-[var(--muted-foreground)]">

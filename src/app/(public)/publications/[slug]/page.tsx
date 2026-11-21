@@ -1,9 +1,9 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink, Globe, Calendar, MapPin, BookOpen } from 'lucide-react'
+import { ArrowLeft, ExternalLink, MapPin, BookOpen } from 'lucide-react'
 import { EDITORIAL_PUBLICATIONS } from '@/lib/editorial/sources'
-import { CURATED_ARTICLES } from '@/lib/editorial/articles'
+import { getEditorialCatalog } from '@/lib/editorial/catalog'
 import { ArticleFeed } from '@/components/editorial/article-feed'
 import { Button } from '@/components/ui/button'
 
@@ -25,7 +25,7 @@ export default async function PublicationDetailPage({ params }: PublicationPageP
     notFound()
   }
 
-  const articles = CURATED_ARTICLES.filter((a) => a.publicationSlug === slug)
+  const articles = await getEditorialCatalog({ publicationSlug: slug })
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-10 space-y-12">

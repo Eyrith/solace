@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { CURATED_ARTICLES, TOPIC_METADATA } from '@/lib/editorial/articles'
+import { CURATED_ARTICLES } from '@/lib/editorial/articles'
+import { mergeEditorialArticles } from '@/lib/editorial/catalog'
 import { EDITORIAL_PUBLICATIONS } from '@/lib/editorial/sources'
-import { FEED_SOURCES } from '@/lib/feeds/parser'
 
 describe('Editorial Content & Attribution Integrity', () => {
   it('contains curated articles across all required categories', () => {
@@ -31,10 +31,17 @@ describe('Editorial Content & Attribution Integrity', () => {
     }
   })
 
-  it('feed source endpoints match official feeds', () => {
-    expect(FEED_SOURCES.length).toBeGreaterThanOrEqual(4)
-    const psyche = FEED_SOURCES.find((f) => f.sourceSlug === 'psyche')
-    expect(psyche?.feedUrl).toBe('https://psyche.co/feed')
+  it('merges database articles ahead of fallback items and deduplicates by URL', () => {
+    const sampleFallback = CURATED_ARTICLES.slice(0, 2)
+    const duplicateFromDb = {
+      ...sampleFallback[0],
+      id: 'db-override-1',
+      originalUrl: sampleFallback[0].originalUrl.toUpperCase(),
+    }
+    const merged = mergeEditorialArticles([duplicateFromDb], sampleFallback)
+    expect(merged).toHaveLength(2)
+    expect(merged[0].id).toBe('db-override-1')
+    expect(merged[1].id).toBe(sampleFallback[1].id)
   })
 })
 

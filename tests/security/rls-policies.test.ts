@@ -74,5 +74,14 @@ describe('PostgreSQL Migration & RLS Security Policy Verification', () => {
     expect(migrationSql).toContain("'1_hour'     THEN now() + INTERVAL '1 hour'")
     expect(migrationSql).toContain("'24_hours'   THEN now() + INTERVAL '24 hours'")
   })
+
+  it('enforces RLS and blind-reveal policies in 003 completion migration', () => {
+    const m3Path = path.resolve(__dirname, '../../supabase/migrations/003_sanctuary_feature_completion.sql')
+    const m3Sql = fs.readFileSync(m3Path, 'utf-8')
+    expect(m3Sql).toContain('ALTER TABLE space_moods ENABLE ROW LEVEL SECURITY;')
+    expect(m3Sql).toContain('ALTER TABLE daily_question_answers ENABLE ROW LEVEL SECURITY;')
+    expect(m3Sql).toContain('CREATE POLICY "daily_answers_blind_reveal_read"')
+    expect(m3Sql).toContain('is_daily_question_revealed(daily_question_id)')
+  })
 })
 
