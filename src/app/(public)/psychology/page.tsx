@@ -1,7 +1,7 @@
 import { CategoryView } from '@/components/editorial/category-view'
 
 export const metadata = {
-  title: 'Psychology — Commonplace',
+  title: 'Psychology',
   description: 'Inquiries into emotion, self-compassion, cognitive habits, and inner calm.',
 }
 

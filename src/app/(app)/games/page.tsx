@@ -27,10 +27,12 @@ interface GameSessionSummary {
 
 const GAME_TYPE_LABELS: Record<string, string> = {
   couple_trivia: 'Couple Trivia',
-  would_you_rather: 'Would You Rather',
+  would_you_rather: 'Late Night Dilemmas',
+  guess_partner: "Who's More Likely",
   compatibility: 'Compatibility Check',
   truth_or_dare: 'Truth or Dare',
   deep_questions: 'Deep Questions',
+  co_op: 'Split-Control Co-Op',
 }
 
 export default function GamesHubPage() {
@@ -104,6 +106,10 @@ export default function GamesHubPage() {
 
   const handleStartGame = async (templateId: string) => {
     setError(null)
+    if (templateId === 'game-coop-river-01') {
+      router.push('/games/co-op')
+      return
+    }
     if (!configured) {
       const sid = targetSpaceId ?? 'space-1'
       const created = createLocalGameSession(sid, templateId)
@@ -138,23 +144,25 @@ export default function GamesHubPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-10">
       <header className="border-b border-[var(--border)] pb-6 space-y-2">
-        <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-medium text-[var(--primary)]">
+        <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-[var(--primary)]">
           <Gamepad2 className="h-3.5 w-3.5" />
-          <span>Sanctuary Parlour</span>
+          <span>Bedtime Parlour · Kulfi Games for Two</span>
         </div>
         <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-4xl font-bold tracking-tight text-[var(--foreground)]">
           Games, Quizzes &amp; Play
         </h1>
         <p className="text-sm text-[var(--muted-foreground)] max-w-xl">
-          Lighthearted, intimate games designed for two. All answers stay hidden until both partners submit.
+          Late-night games designed for two phones. Split controls, simultaneous voting, and secret answers revealed together while on your call.
         </p>
 
         {/* Filter Tabs */}
         <div className="flex flex-wrap items-center gap-1.5 pt-4">
           {[
             { id: 'all', label: 'All Games' },
+            { id: 'co_op', label: 'Split-Control Co-Op' },
+            { id: 'guess_partner', label: "Who's More Likely" },
+            { id: 'would_you_rather', label: 'Late Night Dilemmas' },
             { id: 'couple_trivia', label: 'Couple Trivia' },
-            { id: 'would_you_rather', label: 'Would You Rather' },
             { id: 'compatibility', label: 'Compatibility' },
             { id: 'truth_or_dare', label: 'Truth or Dare' },
           ].map((tab) => (
@@ -182,7 +190,7 @@ export default function GamesHubPage() {
         <StatusBanner
           tone="info"
           title="No Private Space Selected"
-          description="Create or join a private space on Sanctuary Home first to play live blind-reveal games with your partner."
+          description="Connect with a partner on Sanctuary Home first to play live blind-reveal games together."
         />
       )}
 
@@ -217,53 +225,85 @@ export default function GamesHubPage() {
         </section>
       )}
 
+      {/* Featured Kulfi Split-Control Game Banner */}
+      <section className="relative overflow-hidden rounded-3xl border border-[#e07a5f]/30 bg-gradient-to-br from-[#111219] via-[#1a1d2e] to-[#251f28] p-6 text-white shadow-xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[#e07a5f]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#e07a5f]/20 text-[#f28e6f] border border-[#e07a5f]/30 text-xs font-bold uppercase tracking-wider">
+              <span>🛶 Featured Kulfi Co-Op Mechanic</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold font-[family-name:var(--ds-font-display)] text-white">
+              Two-Boat River · Split-Control Sanctuary
+            </h2>
+            <p className="text-xs sm:text-sm text-white/75 leading-relaxed">
+              Steer the rudder while your partner sets the paddle speed. Navigate a midnight star-lit river together in real time on your phone while on your call!
+            </p>
+          </div>
+          <div className="shrink-0 flex items-center gap-3">
+            <Button
+              size="lg"
+              variant="primary"
+              asChild
+              className="bg-[#e07a5f] hover:bg-[#d0694e] text-white font-semibold rounded-full px-6 py-3 shadow-lg"
+            >
+              <Link href="/games/co-op">
+                <Play className="h-4 w-4 mr-2" />
+                <span>Launch River Journey</span>
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Game Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredGames.map((game) => (
           <div
             key={game.id}
-            className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-6 flex flex-col justify-between space-y-6 hover:border-[var(--primary)] transition-all shadow-xs"
+            className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-7 flex flex-col justify-between space-y-6 hover:border-[var(--primary)] transition-all shadow-sm hover:shadow-md"
           >
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-2xl" role="img" aria-hidden="true">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-2xl shadow-xs" role="img" aria-hidden="true">
                   {game.icon}
                 </span>
-                <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                <div className="flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
                   <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
+                    <Clock className="h-3.5 w-3.5" />
                     {game.durationMinutes} min
                   </span>
                   <span>·</span>
                   <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    2 players
+                    <Users className="h-3.5 w-3.5" />
+                    2 phones
                   </span>
                 </div>
               </div>
 
-              <h3 className="font-[family-name:var(--ds-font-display)] text-xl font-semibold text-[var(--foreground)]">
+              <h3 className="font-[family-name:var(--ds-font-display)] text-xl sm:text-2xl font-bold text-[var(--foreground)]">
                 {game.title}
               </h3>
 
-              <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[var(--muted-foreground)] leading-relaxed">
                 {game.description}
               </p>
             </div>
 
             <div className="pt-4 border-t border-[var(--border)] flex items-center justify-between">
-              <Badge variant="outline" className="text-[11px]">
+              <Badge variant="outline" className="text-[11px] rounded-full px-3 py-1 font-semibold border-[var(--primary)]/30 text-[var(--primary)] bg-[var(--primary)]/10">
                 {game.questionCount} Rounds
               </Badge>
 
               <Button
                 size="sm"
                 variant="primary"
+                className="rounded-full px-5 py-2 font-semibold bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white shadow-xs"
                 isLoading={startingTemplateId === game.id}
                 onClick={() => void handleStartGame(game.id)}
               >
-                <Play className="h-3.5 w-3.5 mr-1" />
-                <span>{configured ? 'Start Live Session' : 'Play 2-Player Sandbox'}</span>
+                <Play className="h-3.5 w-3.5 mr-1.5" />
+                <span>{configured ? 'Start Live Match' : 'Play 2-Phone Session'}</span>
               </Button>
             </div>
           </div>

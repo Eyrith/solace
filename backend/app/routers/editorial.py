@@ -2,6 +2,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
+from app.core.cache import static_data_cache
 from app.core.config import Settings, get_settings
 from app.core.deps import get_optional_supabase_user, get_supabase_gateway
 from app.core.errors import BackendApiError
@@ -12,6 +13,19 @@ from app.schemas.sanctuary import RecordReadingHistoryRequest, ToggleSavedArticl
 router = APIRouter(prefix="/api/editorial", tags=["editorial"])
 
 
+async def _get_cached_sources(gateway: SupabaseGateway) -> list[dict[str, Any]]:
+    async def _fetch():
+        res = await gateway.select(
+            "editorial_sources",
+            columns="id,name,slug,description,website_url,accent_color,last_synced",
+            filters={"is_active": "eq.true"},
+            order="name.asc",
+        )
+        return res if isinstance(res, list) else []
+
+    return await static_data_cache.get_or_set("editorial_sources_active", _fetch, ttl=600)
+
+
 @router.get("/sources")
 async def list_editorial_sources(
     gateway: Annotated[SupabaseGateway, Depends(get_supabase_gateway)],
@@ -20,13 +34,8 @@ async def list_editorial_sources(
     if not settings.is_supabase_configured:
         return {"configured": False, "sources": []}
 
-    rows = await gateway.select(
-        "editorial_sources",
-        columns="id,name,slug,description,website_url,accent_color,last_synced",
-        filters={"is_active": "eq.true"},
-        order="name.asc",
-    )
-    return {"configured": True, "sources": rows if isinstance(rows, list) else []}
+    rows = await _get_cached_sources(gateway)
+    return {"configured": True, "sources": rows}
 
 
 @router.get("/articles")
@@ -41,12 +50,7 @@ async def list_editorial_articles(
     if not settings.is_supabase_configured:
         return {"configured": False, "articles": []}
 
-    sources = await gateway.select(
-        "editorial_sources",
-        columns="id,name,slug,accent_color",
-        filters={"is_active": "eq.true"},
-    )
-    source_rows = sources if isinstance(sources, list) else []
+    source_rows = await _get_cached_sources(gateway)
     source_by_id = {s["id"]: s for s in source_rows if isinstance(s, dict) and s.get("id")}
     source_by_slug = {s["slug"]: s for s in source_rows if isinstance(s, dict) and s.get("slug")}
 

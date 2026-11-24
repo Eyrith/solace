@@ -177,61 +177,13 @@ CRON_SECRET="${EXISTING_CRON_SECRET:-$(gen_hex)}"
 SUPABASE_WEBHOOK_SECRET="${EXISTING_SUPABASE_WEBHOOK_SECRET:-$(gen_hex)}"
 MATRIX_USER_HMAC_SECRET="${EXISTING_MATRIX_USER_HMAC_SECRET:-$(gen_hex)}"
 SYNAPSE_ADMIN_ACCESS_TOKEN="${EXISTING_SYNAPSE_ADMIN_ACCESS_TOKEN:-}"
-SYNAPSE_ADMIN_PASSWORD="${EXISTING_SYNAPSE_ADMIN_PASSWORD:-$(gen_hex)}"
 TUNNEL_GATEWAY_PORT="${TUNNEL_GATEWAY_PORT:-${EXISTING_TUNNEL_GATEWAY_PORT:-8088}}"
 FRONTEND_PORT="${FRONTEND_PORT:-${EXISTING_FRONTEND_PORT:-3080}}"
 
-APP_URL="https://app.${DOMAIN}"
+APP_URL="https://www.${DOMAIN}"
 PUBLIC_URL="https://www.${DOMAIN}"
-MATRIX_SERVER_NAME="matrix.${DOMAIN}"
-MATRIX_PUBLIC_URL="https://${MATRIX_SERVER_NAME}"
 
-mkdir -p infra/matrix/data infra/nginx/generated infra/matrix/generated
-
-HOMESERVER_YAML="infra/matrix/data/homeserver.yaml"
-SIGNING_KEY_FILE="infra/matrix/data/${MATRIX_SERVER_NAME}.signing.key"
-
-if [[ "${RENDER_ONLY}" != "true" && ! -f "${SIGNING_KEY_FILE}" ]]; then
-  echo "Generating Synapse signing key for ${MATRIX_SERVER_NAME}..."
-  docker run --rm \
-    -e "SYNAPSE_SERVER_NAME=${MATRIX_SERVER_NAME}" \
-    -e "SYNAPSE_REPORT_STATS=no" \
-    -v "${PROJECT_ROOT}/infra/matrix/data:/data" \
-    ghcr.io/element-hq/synapse:v1.165.0 generate >/dev/null
-  # Replace the stock generated homeserver.yaml with our locked-down template below
-  rm -f "${HOMESERVER_YAML}"
-fi
-
-if [[ ! -f "${HOMESERVER_YAML}" ]]; then
-  echo "Rendering ${HOMESERVER_YAML} from template..."
-  REG_SECRET="$(gen_hex)"
-  MACAROON_SECRET="$(gen_hex)"
-  FORM_SECRET="$(gen_hex)"
-  python3 - \
-    "infra/matrix/homeserver.yaml.template" \
-    "${HOMESERVER_YAML}" \
-    "${MATRIX_SERVER_NAME}" \
-    "${APP_URL}" \
-    "${MATRIX_PUBLIC_URL}/" \
-    "${SYNAPSE_POSTGRES_PASSWORD}" \
-    "${REG_SECRET}" \
-    "${MACAROON_SECRET}" \
-    "${FORM_SECRET}" <<'PY'
-import pathlib
-import sys
-
-src, dst, srv, app_url, matrix_url, pg_pw, reg_sec, mac_sec, form_sec = sys.argv[1:]
-text = pathlib.Path(src).read_text(encoding="utf-8")
-text = text.replace("<MATRIX_SERVER_NAME>", srv)
-text = text.replace("https://app.example.com", app_url)
-text = text.replace("https://matrix.example.com/", matrix_url)
-text = text.replace("<POSTGRES_PASSWORD>", pg_pw)
-for secret in (reg_sec, mac_sec, form_sec):
-    text = text.replace("<GENERATE_HEX_32>", secret, 1)
-pathlib.Path(dst).write_text(text, encoding="utf-8")
-PY
-  chmod 640 "${HOMESERVER_YAML}" || true
-fi
+mkdir -p infra/nginx/generated
 
 write_env_files() {
   umask 077
@@ -252,15 +204,6 @@ NEXT_PUBLIC_DEFAULT_HOST=public
 CRON_SECRET=${CRON_SECRET}
 SUPABASE_WEBHOOK_SECRET=${SUPABASE_WEBHOOK_SECRET}
 
-NEXT_PUBLIC_MATRIX_HOMESERVER_URL=${MATRIX_PUBLIC_URL}
-NEXT_PUBLIC_MATRIX_SERVER_NAME=${MATRIX_SERVER_NAME}
-MATRIX_HOMESERVER_INTERNAL_URL=http://synapse:8008
-SYNAPSE_ADMIN_ACCESS_TOKEN=${SYNAPSE_ADMIN_ACCESS_TOKEN}
-SYNAPSE_ADMIN_PASSWORD=${SYNAPSE_ADMIN_PASSWORD}
-SYNAPSE_POSTGRES_PASSWORD=${SYNAPSE_POSTGRES_PASSWORD}
-MATRIX_USER_HMAC_SECRET=${MATRIX_USER_HMAC_SECRET}
-MATRIX_LOCAL_POC_MODE=false
-
 APP_ENV=production
 BACKEND_INTERNAL_URL=http://backend:8000
 ENABLE_BACKGROUND_WORKER=true
@@ -275,15 +218,13 @@ render_nginx_configs() {
   python3 - \
     "infra/nginx/app.example.conf" \
     "infra/nginx/generated/app.conf" \
-    "infra/matrix/nginx.example.conf" \
-    "infra/matrix/generated/matrix.conf" \
     "infra/nginx/tunnel-gateway.conf.template" \
     "infra/nginx/generated/tunnel-gateway.conf" \
     "${DOMAIN}" <<'PY'
 import pathlib
 import sys
 
-app_src, app_dst, mat_src, mat_dst, tun_src, tun_dst, domain = sys.argv[1:]
+app_src, app_dst, tun_src, tun_dst, domain = sys.argv[1:]
 cert_dir = f"/etc/letsencrypt/live/{domain}"
 
 app_txt = pathlib.Path(app_src).read_text(encoding="utf-8")
@@ -303,17 +244,6 @@ app_redirect = (
 )
 pathlib.Path(app_dst).write_text(app_txt + app_redirect, encoding="utf-8")
 
-mat_txt = pathlib.Path(mat_src).read_text(encoding="utf-8")
-mat_txt = mat_txt.replace("matrix.example.com", f"matrix.{domain}")
-mat_txt = mat_txt.replace("app.example.com", f"app.{domain}")
-mat_txt = mat_txt.replace("# ssl_certificate ...;", f"ssl_certificate {cert_dir}/fullchain.pem;")
-mat_txt = mat_txt.replace("# ssl_certificate_key ...;", f"ssl_certificate_key {cert_dir}/privkey.pem;")
-mat_redirect = (
-    f"\nserver {{\n    listen 80;\n    server_name matrix.{domain};\n"
-    f"    return 301 https://$host$request_uri;\n}}\n"
-)
-pathlib.Path(mat_dst).write_text(mat_txt + mat_redirect, encoding="utf-8")
-
 if pathlib.Path(tun_src).exists():
     tun_txt = pathlib.Path(tun_src).read_text(encoding="utf-8")
     tun_txt = tun_txt.replace("<DOMAIN>", domain)
@@ -323,87 +253,11 @@ PY
 
 write_env_files
 render_nginx_configs
-echo "Generated .env.local, .env, infra/nginx/generated/app.conf, and infra/matrix/generated/matrix.conf."
+echo "Generated .env.local, .env, and infra/nginx/generated/app.conf."
 
 if [[ "${RENDER_ONLY}" == "true" ]]; then
   echo "Render-only complete. Exiting before Docker operations."
   exit 0
-fi
-
-echo "Starting synapse-postgres and synapse..."
-docker compose --env-file .env.local up -d synapse-postgres synapse
-
-echo "Waiting for Matrix Synapse on 127.0.0.1:8008..."
-for _ in $(seq 1 45); do
-  if curl -fsS http://127.0.0.1:8008/_matrix/client/versions >/dev/null 2>&1; then
-    break
-  fi
-  sleep 2
-done
-curl -fsS http://127.0.0.1:8008/_matrix/client/versions >/dev/null
-
-if [[ -z "${SYNAPSE_ADMIN_ACCESS_TOKEN}" ]]; then
-  echo "Provisioning Synapse admin user (${ADMIN_USER}) and capturing access token..."
-  SYNAPSE_ADMIN_ACCESS_TOKEN="$(
-    python3 - "${HOMESERVER_YAML}" "${ADMIN_USER}" "${SYNAPSE_ADMIN_PASSWORD}" <<'PY'
-import hashlib
-import hmac
-import json
-import pathlib
-import re
-import sys
-import urllib.error
-import urllib.request
-
-hs_path, user, pw = sys.argv[1:]
-hs_text = pathlib.Path(hs_path).read_text(encoding="utf-8")
-m = re.search(r'^registration_shared_secret:\s*"?([^"\n]+)"?', hs_text, re.MULTILINE)
-if not m:
-    raise SystemExit("Could not locate registration_shared_secret in homeserver.yaml")
-shared_secret = m.group(1).strip()
-
-base = "http://127.0.0.1:8008"
-try:
-    with urllib.request.urlopen(f"{base}/_synapse/admin/v1/register", timeout=10) as resp:
-        nonce = json.loads(resp.read().decode())["nonce"]
-    mac = hmac.new(
-        shared_secret.encode("utf-8"),
-        f"{nonce}\x00{user}\x00{pw}\x00admin".encode("utf-8"),
-        hashlib.sha1,
-    ).hexdigest()
-    req = urllib.request.Request(
-        f"{base}/_synapse/admin/v1/register",
-        data=json.dumps({
-            "nonce": nonce,
-            "username": user,
-            "password": pw,
-            "admin": True,
-            "mac": mac,
-        }).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        print(json.loads(resp.read().decode())["access_token"])
-except urllib.error.HTTPError as exc:
-    body = exc.read().decode("utf-8", errors="ignore")
-    if "M_USER_IN_USE" not in body:
-        raise SystemExit(f"Synapse admin registration failed ({exc.code}): {body}")
-    login_req = urllib.request.Request(
-        f"{base}/_matrix/client/v3/login",
-        data=json.dumps({
-            "type": "m.login.password",
-            "identifier": {"type": "m.id.user", "user": user},
-            "password": pw,
-        }).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(login_req, timeout=15) as resp:
-        print(json.loads(resp.read().decode())["access_token"])
-PY
-  )"
-  write_env_files
 fi
 
 echo "Building and starting backend and frontend containers..."
@@ -435,9 +289,7 @@ if [[ "${INSTALL_NGINX}" == "true" ]]; then
     exit 1
   fi
   install -m 644 infra/nginx/generated/app.conf /etc/nginx/sites-available/project00-app.conf
-  install -m 644 infra/matrix/generated/matrix.conf /etc/nginx/sites-available/project00-matrix.conf
   ln -sf /etc/nginx/sites-available/project00-app.conf /etc/nginx/sites-enabled/project00-app.conf
-  ln -sf /etc/nginx/sites-available/project00-matrix.conf /etc/nginx/sites-enabled/project00-matrix.conf
   nginx -t
   systemctl reload nginx
 fi
@@ -459,28 +311,24 @@ Next steps for Cloudflare Tunnel (once ${DOMAIN} shows Active on Cloudflare):
    ingress:
      - hostname: www.${DOMAIN}
        service: http://127.0.0.1:${TUNNEL_GATEWAY_PORT}
-     - hostname: app.${DOMAIN}
-       service: http://127.0.0.1:${TUNNEL_GATEWAY_PORT}
-     - hostname: matrix.${DOMAIN}
+     - hostname: ${DOMAIN}
        service: http://127.0.0.1:${TUNNEL_GATEWAY_PORT}
      - service: http_status:404
 
 3. Route DNS CNAMEs & run the tunnel:
    cloudflared tunnel route dns solace www.${DOMAIN}
-   cloudflared tunnel route dns solace app.${DOMAIN}
-   cloudflared tunnel route dns solace matrix.${DOMAIN}
+   cloudflared tunnel route dns solace ${DOMAIN}
    cloudflared tunnel run solace
 
 4. Add Auth Redirect URLs & Webhooks (once tunnel is running):
    - Supabase Redirect URLs:
-       https://app.${DOMAIN}/sanctuary/login
-       https://app.${DOMAIN}/api/auth/callback
+       https://www.${DOMAIN}/sanctuary/login
        https://www.${DOMAIN}/api/auth/callback
    - Supabase DB Webhook (DELETE on 'messages'):
-       URL:    https://app.${DOMAIN}/api/webhooks/supabase
+       URL:    https://www.${DOMAIN}/api/webhooks/supabase
        Header: x-webhook-secret: ${SUPABASE_WEBHOOK_SECRET}
    - LiveKit Webhook:
-       URL:    https://app.${DOMAIN}/api/webhooks/livekit
+       URL:    https://www.${DOMAIN}/api/webhooks/livekit
 ===============================================================================
 EOF
 else
@@ -489,28 +337,23 @@ else
 ===============================================================================
 Container stack deployed cleanly! Remaining external steps (only you can do):
 
-1. Supabase Migrations (run 001 -> 004 in order in Supabase SQL Editor or CLI):
-   - supabase/migrations/001_initial_schema.sql  (enable pg_cron extension first)
-   - supabase/migrations/002_matrix_integration.sql
-   - supabase/migrations/003_sanctuary_feature_completion.sql
-   - supabase/migrations/004_storage_buckets.sql
+1. Supabase Migrations (run 001 -> 007 in order in Supabase SQL Editor or CLI)
 
 2. DNS & TLS Certificates (on this VPS):
-   sudo certbot certonly --standalone --cert-name ${DOMAIN} -d www.${DOMAIN} -d app.${DOMAIN} -d matrix.${DOMAIN}
+   sudo certbot certonly --standalone --cert-name ${DOMAIN} -d www.${DOMAIN} -d ${DOMAIN}
    Then install Nginx configs:
    sudo ./scripts/deploy-vps.sh --domain ${DOMAIN} --install-nginx
 
 3. Supabase Auth Redirect URLs:
-   - https://app.${DOMAIN}/sanctuary/login
-   - https://app.${DOMAIN}/api/auth/callback
+   - https://www.${DOMAIN}/sanctuary/login
    - https://www.${DOMAIN}/api/auth/callback
 
 4. Webhooks:
    - Supabase DB Webhook (DELETE on 'messages'):
-       URL:    https://app.${DOMAIN}/api/webhooks/supabase
+       URL:    https://www.${DOMAIN}/api/webhooks/supabase
        Header: x-webhook-secret: ${SUPABASE_WEBHOOK_SECRET}
    - LiveKit Webhook:
-       URL:    https://app.${DOMAIN}/api/webhooks/livekit
+       URL:    https://www.${DOMAIN}/api/webhooks/livekit
 ===============================================================================
 EOF
 fi

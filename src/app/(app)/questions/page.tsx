@@ -3,27 +3,23 @@
 import * as React from 'react'
 import Link from 'next/link'
 import {
-  HelpCircle,
-  Sparkles,
+  MessageSquareQuote,
   Shuffle,
   Bookmark,
   Check,
-  MessageSquare,
-  Lock,
+  Send,
   Plus,
-  CheckCircle2,
+  X,
+  Search,
 } from 'lucide-react'
 import { QUESTION_LIBRARY } from '@/lib/questions/data'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { StatusBanner } from '@/components/ui/status-banner'
-import { createClient, isSupabaseClientConfigured } from '@/lib/supabase/client'
 import { useSanctuary } from '@/components/providers/sanctuary-provider'
 import {
   addLocalCustomQuestion,
-  answerLocalDailyInquiry,
-  getLocalDailyInquiry,
   listLocalCustomQuestions,
   listSavedQuestionIds,
   subscribeLocalSanctuary,
@@ -37,43 +33,29 @@ interface DisplayQuestion {
   isCustom?: boolean
 }
 
-interface DailyInquiry {
-  id: string
-  date: string
-  questionId: string
-  category: string
-  prompt: string
-  myAnswer: string | null
-  hasPartnerAnswered: boolean
-  partnerAnswer: string | null
-  revealed: boolean
-}
-
 const CATEGORY_TABS = [
-  { id: 'all', label: 'All Inquiries' },
-  { id: 'saved', label: 'Saved Favorites' },
-  { id: 'romantic', label: 'Romantic' },
-  { id: 'personal', label: 'Personal & Deep' },
-  { id: 'funny', label: 'Playful & Funny' },
-  { id: 'intimacy', label: 'Intimacy' },
-  { id: 'childhood', label: 'Childhood' },
+  { id: 'all', label: 'All Topics' },
+  { id: 'saved', label: 'Saved' },
+  { id: 'funny', label: 'Playful & Banter' },
+  { id: 'romantic', label: 'Flirty & Romantic' },
+  { id: 'personal', label: 'Deep & Late Night' },
   { id: 'hypothetical', label: 'Hypothetical' },
-  { id: 'future', label: 'Future' },
+  { id: 'intimacy', label: 'Intimacy & Desires' },
   { id: 'intellectual', label: 'Intellectual' },
 ]
 
 export default function QuestionsLibraryPage() {
-  const { activeSpaceId, configured, isLocalSandbox, loading, demoActor, setDemoActor } = useSanctuary()
+  const { spaces, activeSpaceId, configured, loading } = useSanctuary()
+  const targetSpaceId = activeSpaceId ?? (spaces[0]?.id || (!loading && !configured ? 'space-1' : null))
   const [selectedCat, setSelectedCat] = React.useState('all')
   const [questions, setQuestions] = React.useState<DisplayQuestion[]>(QUESTION_LIBRARY)
   const [savedIds, setSavedIds] = React.useState<string[]>([])
-  const [randomQ, setRandomQ] = React.useState<DisplayQuestion>(QUESTION_LIBRARY[4])
+  const [searchQuery, setSearchQuery] = React.useState('')
+  const [randomQ, setRandomQ] = React.useState<DisplayQuestion>(() => {
+    const funny = QUESTION_LIBRARY.filter((q) => q.category === 'funny')
+    return funny[Math.floor(Math.random() * funny.length)] || QUESTION_LIBRARY[0]
+  })
   const [isShuffling, setIsShuffling] = React.useState(false)
-
-  // Daily Blind-Reveal state
-  const [daily, setDaily] = React.useState<DailyInquiry | null>(null)
-  const [dailyDraft, setDailyDraft] = React.useState('')
-  const [submittingDaily, setSubmittingDaily] = React.useState(false)
 
   // Custom question creator state
   const [showCustomForm, setShowCustomForm] = React.useState(false)
@@ -81,9 +63,6 @@ export default function QuestionsLibraryPage() {
   const [customPrompt, setCustomPrompt] = React.useState('')
   const [creatingCustom, setCreatingCustom] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-
-  const targetSpaceId = activeSpaceId ?? (!loading && !configured ? 'space-1' : null)
-  const chatBaseHref = targetSpaceId ? `/messages/${targetSpaceId}` : '/home'
 
   const loadLocalQuestionsData = React.useCallback((spaceId: string) => {
     const customs: DisplayQuestion[] = listLocalCustomQuestions(spaceId).map((c) => ({
@@ -94,7 +73,6 @@ export default function QuestionsLibraryPage() {
     }))
     setQuestions([...customs, ...QUESTION_LIBRARY])
     setSavedIds(listSavedQuestionIds())
-    setDaily(getLocalDailyInquiry(spaceId))
   }, [])
 
   const loadQuestions = React.useCallback(async () => {
@@ -121,23 +99,6 @@ export default function QuestionsLibraryPage() {
       }
       if (Array.isArray(payload.savedIds)) {
         setSavedIds(payload.savedIds as string[])
-      }
-    } catch {}
-  }, [configured, activeSpaceId])
-
-  const loadDaily = React.useCallback(async () => {
-    if (!configured || !activeSpaceId) {
-      setDaily(null)
-      return
-    }
-    try {
-      const res = await fetch(`/api/questions/daily?spaceId=${encodeURIComponent(activeSpaceId)}`, {
-        cache: 'no-store',
-      })
-      if (!res.ok) return
-      const payload = await res.json()
-      if (payload?.daily) {
-        setDaily(payload.daily as DailyInquiry)
       }
     } catch {}
   }, [configured, activeSpaceId])
@@ -179,57 +140,24 @@ export default function QuestionsLibraryPage() {
       })
       .catch(() => {})
 
-    if (activeSpaceId) {
-      fetch(`/api/questions/daily?spaceId=${encodeURIComponent(activeSpaceId)}`, {
-        cache: 'no-store',
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((payload) => {
-          if (active && payload?.daily) {
-            setDaily(payload.daily as DailyInquiry)
-          }
-        })
-        .catch(() => {})
-    } else {
-      Promise.resolve().then(() => {
-        if (active) setDaily(null)
-      })
-    }
-
     return () => {
       active = false
     }
   }, [configured, activeSpaceId, targetSpaceId, loadLocalQuestionsData])
 
-  React.useEffect(() => {
-    if (!configured || !daily?.id || !isSupabaseClientConfigured()) return
-    const supabase = createClient()
-    const channel = supabase
-      .channel(`daily-q:${daily.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'daily_question_answers',
-          filter: `daily_question_id=eq.${daily.id}`,
-        },
-        () => {
-          void loadDaily()
-        },
-      )
-      .subscribe()
-
-    return () => {
-      void supabase.removeChannel(channel)
-    }
-  }, [configured, daily?.id, loadDaily])
-
   const filtered = React.useMemo(() => {
-    if (selectedCat === 'all') return questions
-    if (selectedCat === 'saved') return questions.filter((q) => savedIds.includes(q.id))
-    return questions.filter((q) => q.category === selectedCat)
-  }, [questions, selectedCat, savedIds])
+    let list = questions
+    if (selectedCat === 'saved') {
+      list = list.filter((q) => savedIds.includes(q.id))
+    } else if (selectedCat !== 'all') {
+      list = list.filter((q) => q.category === selectedCat)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim()
+      list = list.filter((item) => item.prompt.toLowerCase().includes(q))
+    }
+    return list
+  }, [questions, selectedCat, savedIds, searchQuery])
 
   const toggleSave = async (id: string) => {
     if (!configured) {
@@ -248,53 +176,13 @@ export default function QuestionsLibraryPage() {
 
   const handleShuffle = () => {
     const pool = filtered.length > 0 ? filtered : questions
-    if (pool.length === 0) return
     setIsShuffling(true)
-    window.setTimeout(() => {
-      const candidates = pool.length > 1 ? pool.filter((q) => q.id !== randomQ.id) : pool
-      const idx = Math.floor(Math.random() * candidates.length)
-      setRandomQ(candidates[idx])
+    setTimeout(() => {
+      const remaining = pool.filter((q) => q.id !== randomQ.id)
+      const next = remaining[Math.floor(Math.random() * remaining.length)] || pool[0]
+      setRandomQ(next)
       setIsShuffling(false)
-    }, 180)
-  }
-
-  const handleSubmitDaily = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!daily?.id || !targetSpaceId || !dailyDraft.trim()) return
-
-    if (!configured) {
-      const updated = answerLocalDailyInquiry(targetSpaceId, dailyDraft.trim())
-      setDaily(updated)
-      setDailyDraft('')
-      return
-    }
-
-    setSubmittingDaily(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/questions/daily/answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          spaceId: targetSpaceId,
-          dailyQuestionId: daily.id,
-          answer: dailyDraft.trim(),
-        }),
-      })
-      const payload = await res.json().catch(() => null)
-      if (!res.ok) {
-        setError(payload?.detail || payload?.error || 'Could not submit daily response.')
-        return
-      }
-      if (payload?.daily) {
-        setDaily(payload.daily as DailyInquiry)
-        setDailyDraft('')
-      }
-    } catch {
-      setError('Failed to save daily response.')
-    } finally {
-      setSubmittingDaily(false)
-    }
+    }, 150)
   }
 
   const handleCreateCustom = async (e: React.FormEvent) => {
@@ -323,64 +211,79 @@ export default function QuestionsLibraryPage() {
       })
       const payload = await res.json().catch(() => null)
       if (!res.ok) {
-        setError(payload?.detail || payload?.error || 'Could not save custom prompt.')
+        setError(payload?.detail || payload?.error || 'Could not save prompt.')
         return
       }
       setCustomPrompt('')
       setShowCustomForm(false)
       await loadQuestions()
     } catch {
-      setError('Unable to create custom prompt.')
+      setError('Unable to save custom prompt.')
     } finally {
       setCreatingCustom(false)
     }
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-10">
-      <header className="border-b border-[var(--border)] pb-6 space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+      {/* Header */}
+      <header className="space-y-4 border-b border-[var(--border)] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider font-medium text-[var(--primary)]">
-              <HelpCircle className="h-3.5 w-3.5" />
-              <span>Intimate Dialogue Generator</span>
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase text-[var(--primary)]">
+              <MessageSquareQuote className="h-4 w-4" />
+              <span>Conversation Starters</span>
             </div>
-            <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-4xl font-bold tracking-tight text-[var(--foreground)]">
-              Deep &amp; Playful Question Library
+            <h1 className="font-[family-name:var(--ds-font-display)] text-2xl sm:text-3xl font-bold tracking-tight text-[var(--foreground)]">
+              Icebreakers &amp; Late-Night Prompts
             </h1>
-            <p className="text-sm text-[var(--muted-foreground)] max-w-xl">
-              Conversation prompts to spark laughter, tender memories, and mutual understanding.
+            <p className="text-xs sm:text-sm text-[var(--muted-foreground)]">
+              Curated conversation starters to spark spontaneous banter or late-night discussions. Send directly to your private chat with one click.
             </p>
           </div>
 
-          {targetSpaceId && (
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowCustomForm((v) => !v)}
+              className="text-xs"
             >
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              <span>Add Custom Prompt</span>
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              <span>New Prompt</span>
             </Button>
-          )}
+          </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-4">
-          {CATEGORY_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setSelectedCat(tab.id)}
-              className={`px-3 py-1 text-xs rounded-full transition-colors cursor-pointer border ${
-                selectedCat === tab.id
-                  ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)] font-medium'
-                  : 'bg-[var(--card)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)]'
-              }`}
-            >
-              {tab.id === 'saved' ? `Saved (${savedIds.length})` : tab.label}
-            </button>
-          ))}
+        {/* Search & Category Pills */}
+        <div className="space-y-3 pt-2">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
+            <Input
+              type="search"
+              placeholder="Filter topics..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-8 text-xs bg-[var(--card)]"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {CATEGORY_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSelectedCat(tab.id)}
+                className={`px-3 py-1 text-xs rounded-full transition-colors cursor-pointer border ${
+                  selectedCat === tab.id
+                    ? 'bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)] font-medium shadow-xs'
+                    : 'bg-[var(--card)] text-[var(--muted-foreground)] border-[var(--border)] hover:text-[var(--foreground)]'
+                }`}
+              >
+                {tab.id === 'saved' ? `Saved (${savedIds.length})` : tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -388,19 +291,30 @@ export default function QuestionsLibraryPage() {
         <StatusBanner tone="error" title="Question Action Issue" description={error} />
       )}
 
-      {showCustomForm && targetSpaceId && (
+      {/* Custom Prompt Modal/Form */}
+      {showCustomForm && (
         <form
           onSubmit={handleCreateCustom}
-          className="rounded-[var(--ds-radius)] border border-[var(--primary)]/40 bg-[var(--card)] p-5 space-y-4 shadow-xs"
+          className="rounded-[var(--ds-radius)] border border-[var(--primary)]/40 bg-[var(--card)] p-5 space-y-4 shadow-sm"
         >
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-[var(--foreground)]">
-              Add a Private Question for Your Space
+              Add a Private Prompt
             </h2>
+            <button
+              type="button"
+              onClick={() => setShowCustomForm(false)}
+              className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-[var(--muted-foreground)]">Category</label>
             <select
               value={customCategory}
               onChange={(e) => setCustomCategory(e.target.value)}
-              className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 text-xs"
+              className="w-full h-8 rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--background)] px-2.5 text-xs text-[var(--foreground)]"
             >
               {CATEGORY_TABS.filter((c) => c.id !== 'all' && c.id !== 'saved').map((c) => (
                 <option key={c.id} value={c.id}>
@@ -412,8 +326,9 @@ export default function QuestionsLibraryPage() {
           <Input
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
-            placeholder="Write a question only visible in this sanctuary..."
+            placeholder="Write a thought-provoking or playful question..."
             required
+            className="text-xs"
           />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={() => setShowCustomForm(false)}>
@@ -426,222 +341,134 @@ export default function QuestionsLibraryPage() {
         </form>
       )}
 
-      {/* ── Today's Blind-Reveal Daily Inquiry ─────────────────────────────── */}
-      {daily && (
-        <section className="rounded-[var(--ds-radius)] border border-[var(--primary)]/30 bg-[var(--card)] p-6 sm:p-8 space-y-5 shadow-xs">
+      {/* Featured Card of the Moment */}
+      {randomQ && (
+        <section className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8 space-y-6 shadow-xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--primary)]">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>Today&apos;s Blind-Reveal Inquiry</span>
-            </span>
-            <Badge variant="outline" className="text-[11px] capitalize">
-              {daily.date} · {daily.category}
+            <Badge variant="outline" className="text-[11px] capitalize font-medium">
+              Featured · {randomQ.category}
             </Badge>
+
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleShuffle}
+              disabled={isShuffling}
+              className="text-xs h-7 gap-1.5"
+            >
+              <Shuffle className={`h-3 w-3 ${isShuffling ? 'animate-spin' : ''}`} />
+              <span>Next Card</span>
+            </Button>
           </div>
 
-          <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-medium text-[var(--foreground)] leading-snug">
-            &ldquo;{daily.prompt}&rdquo;
-          </h2>
+          <blockquote className="font-[family-name:var(--ds-font-display)] text-xl sm:text-2xl font-medium text-[var(--foreground)] leading-snug py-1">
+            &ldquo;{randomQ.prompt}&rdquo;
+          </blockquote>
 
-          {daily.revealed ? (
-            <div className="space-y-3 pt-2">
-              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Both Answered — Revealed Together</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--background)] p-4 space-y-1">
-                  <div className="text-[11px] uppercase tracking-wider font-semibold text-[var(--primary)]">
-                    {demoActor === 'partner' ? 'Partner Perspective' : 'Your Answer'}
-                  </div>
-                  <p className="text-sm text-[var(--foreground)]">{daily.myAnswer}</p>
-                </div>
-                <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--background)] p-4 space-y-1">
-                  <div className="text-[11px] uppercase tracking-wider font-semibold text-purple-600 dark:text-purple-400">
-                    {demoActor === 'partner' ? 'You' : "Partner's Answer"}
-                  </div>
-                  <p className="text-sm text-[var(--foreground)]">{daily.partnerAnswer}</p>
-                </div>
-              </div>
-              <div className="pt-1">
-                <Button variant="outline" size="sm" asChild>
-                  <Link
-                    href={`${chatBaseHref}?prompt=${encodeURIComponent(
-                      `Reflecting on today's question ("${daily.prompt}"): I loved reading your answer!`,
-                    )}`}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    <span>Discuss Reveal in Chat</span>
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          ) : daily.myAnswer ? (
-            <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--muted)]/30 p-4 space-y-3 text-xs">
-              <div className="flex items-center gap-1.5 font-semibold text-[var(--foreground)]">
-                <Lock className="h-3.5 w-3.5 text-amber-500" />
-                <span>Your answer is sealed — waiting for your partner</span>
-              </div>
-              <p className="text-[var(--muted-foreground)]">Your note: &ldquo;{daily.myAnswer}&rdquo;</p>
-              {isLocalSandbox && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setDemoActor(demoActor === 'self' ? 'partner' : 'self')}
-                >
-                  <span>Switch to {demoActor === 'self' ? 'Partner' : 'You'} to Answer &amp; Reveal</span>
-                </Button>
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--border)]">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => void toggleSave(randomQ.id)}
+              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+            >
+              {savedIds.includes(randomQ.id) ? (
+                <>
+                  <Check className="h-3.5 w-3.5 mr-1 text-[var(--primary)]" />
+                  <span>Saved</span>
+                </>
+              ) : (
+                <>
+                  <Bookmark className="h-3.5 w-3.5 mr-1" />
+                  <span>Save</span>
+                </>
               )}
-            </div>
-          ) : (
-            <form onSubmit={handleSubmitDaily} className="space-y-3 pt-1">
-              <textarea
-                value={dailyDraft}
-                onChange={(e) => setDailyDraft(e.target.value)}
-                rows={3}
-                placeholder="Write your reflection... Your partner cannot read it until they submit theirs."
-                className="w-full rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--background)] p-3 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] resize-none"
-                required
-              />
-              <Button type="submit" variant="primary" size="sm" isLoading={submittingDaily}>
-                <Lock className="h-3.5 w-3.5 mr-1.5" />
-                <span>Lock In Today&apos;s Answer</span>
-              </Button>
-            </form>
-          )}
+            </Button>
+
+            <Button variant="primary" size="sm" asChild className="gap-1.5">
+              <Link
+                href={
+                  targetSpaceId
+                    ? `/messages/${targetSpaceId}?prompt=${encodeURIComponent(randomQ.prompt)}`
+                    : '/home'
+                }
+              >
+                <Send className="h-3.5 w-3.5" />
+                <span>Send into Chat</span>
+              </Link>
+            </Button>
+          </div>
         </section>
       )}
 
-      {/* ── Random Card Drawer / Highlight ──────────────────────────────────── */}
-      <section className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8 space-y-6 shadow-xs">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[var(--primary)]">
-            <Shuffle className="h-3.5 w-3.5" />
-            <span>Random Inquiry Generator</span>
-          </div>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleShuffle}
-            disabled={isShuffling}
-            className="text-xs"
-          >
-            <Shuffle className={`h-3.5 w-3.5 mr-1.5 ${isShuffling ? 'animate-spin' : ''}`} />
-            <span>Draw Another Card</span>
-          </Button>
-        </div>
-
-        <div className="space-y-2 py-2">
-          <Badge variant="outline" className="text-[11px] capitalize">
-            {randomQ.category}
-          </Badge>
-          <blockquote className="font-[family-name:var(--ds-font-display)] text-2xl sm:text-3xl font-medium text-[var(--foreground)] leading-snug">
-            &ldquo;{randomQ.prompt}&rdquo;
-          </blockquote>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[var(--border)]">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void toggleSave(randomQ.id)}
-            className="text-xs"
-          >
-            {savedIds.includes(randomQ.id) ? (
-              <>
-                <Check className="h-3.5 w-3.5 mr-1 text-[var(--primary)]" />
-                <span>Saved to Favourites</span>
-              </>
-            ) : (
-              <>
-                <Bookmark className="h-3.5 w-3.5 mr-1" />
-                <span>Save Question</span>
-              </>
-            )}
-          </Button>
-
-          <Button variant="primary" size="sm" asChild>
-            <Link
-              href={
-                targetSpaceId
-                  ? `/messages/${targetSpaceId}?prompt=${encodeURIComponent(randomQ.prompt)}`
-                  : '/home'
-              }
-            >
-              <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-              <span>Send into Chat</span>
-            </Link>
-          </Button>
-        </div>
-      </section>
-
-      {/* ── Browsable Question Grid ─────────────────────────────────────────── */}
+      {/* Browsable Question Grid */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between text-xs text-[var(--muted-foreground)]">
-          <span>{filtered.length} inquiries in this category</span>
-          {savedIds.length > 0 && <span>{savedIds.length} saved favourites</span>}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+            {selectedCat === 'saved'
+              ? `Saved Prompts (${filtered.length})`
+              : `Browse Prompts (${filtered.length})`}
+          </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filtered.map((item) => {
-            const isSaved = savedIds.includes(item.id)
-            return (
+        {filtered.length === 0 ? (
+          <div className="rounded-[var(--ds-radius)] border border-dashed border-[var(--border)] p-10 text-center space-y-2">
+            <p className="text-sm font-medium text-[var(--foreground)]">No prompts found</p>
+            <p className="text-xs text-[var(--muted-foreground)]">
+              {selectedCat === 'saved'
+                ? 'Save questions by clicking the bookmark icon on any card.'
+                : 'Try clearing your search query or selecting a different category.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+            {filtered.map((item) => (
               <div
                 key={item.id}
-                className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-5 flex flex-col justify-between space-y-4 hover:border-[var(--primary)]/60 transition-all"
+                className="group flex flex-col justify-between rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-4 sm:p-5 hover:border-[var(--primary)]/60 transition-all duration-150 space-y-3"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-wider text-[var(--muted-foreground)] font-medium capitalize">
+                    <Badge variant="outline" className="text-[10px] capitalize">
                       {item.category}
-                    </span>
-                    {item.isCustom && (
-                      <Badge variant="outline" className="text-[10px]">
-                        Private Custom
-                      </Badge>
-                    )}
+                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() => void toggleSave(item.id)}
+                      className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                      title={savedIds.includes(item.id) ? 'Remove bookmark' : 'Bookmark prompt'}
+                    >
+                      {savedIds.includes(item.id) ? (
+                        <Check className="h-3.5 w-3.5 text-[var(--primary)]" />
+                      ) : (
+                        <Bookmark className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100" />
+                      )}
+                    </button>
                   </div>
-                  <p className="font-[family-name:var(--ds-font-display)] text-lg font-medium text-[var(--foreground)] leading-snug">
-                    {item.prompt}
+
+                  <p className="text-sm font-medium text-[var(--foreground)] leading-relaxed">
+                    &ldquo;{item.prompt}&rdquo;
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]/70 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => void toggleSave(item.id)}
-                    className="inline-flex items-center gap-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
-                  >
-                    {isSaved ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-[var(--primary)]" />
-                        <span className="text-[var(--primary)] font-medium">Saved</span>
-                      </>
-                    ) : (
-                      <>
-                        <Bookmark className="h-3.5 w-3.5" />
-                        <span>Save</span>
-                      </>
-                    )}
-                  </button>
-
-                  <Link
-                    href={
-                      targetSpaceId
-                        ? `/messages/${targetSpaceId}?prompt=${encodeURIComponent(item.prompt)}`
-                        : chatBaseHref
-                    }
-                    className="text-[var(--primary)] hover:underline inline-flex items-center gap-1"
-                  >
-                    <span>Discuss in chat &rarr;</span>
-                  </Link>
+                <div className="pt-2 border-t border-[var(--border)]/60 flex items-center justify-end">
+                  <Button variant="ghost" size="sm" asChild className="h-7 text-xs text-[var(--primary)] hover:text-[var(--primary)] gap-1">
+                    <Link
+                      href={
+                        targetSpaceId
+                          ? `/messages/${targetSpaceId}?prompt=${encodeURIComponent(item.prompt)}`
+                          : '/home'
+                      }
+                    >
+                      <Send className="h-3 w-3" />
+                      <span>Send to Chat</span>
+                    </Link>
+                  </Button>
                 </div>
               </div>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )

@@ -10,8 +10,12 @@ import {
   RefreshCw,
   ArrowRight,
   Clock,
+  Flame,
+  Sparkles,
 } from 'lucide-react'
-import { GAME_TEMPLATES } from '@/lib/games/data'
+import { GAME_TEMPLATES, KULFI_STAKES } from '@/lib/games/data'
+import { CallCompanionBar } from '@/components/sanctuary/call-companion-bar'
+import { triggerHaptic, playBedtimeSound, useScreenWakeLock } from '@/lib/sanctuary/mobile-haptics'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatusBanner } from '@/components/ui/status-banner'
@@ -56,6 +60,7 @@ interface GameSessionPayload {
 const GAME_TYPE_TITLES: Record<string, string> = {
   couple_trivia: 'How Well Do You Know Me?',
   would_you_rather: 'Late Night Dilemmas',
+  guess_partner: "Who's More Likely To?",
   compatibility: 'Our Relationship Rhythm',
   truth_or_dare: 'Sweet Truth or Playful Dare',
   deep_questions: 'Deep Dialogue',
@@ -64,11 +69,15 @@ const GAME_TYPE_TITLES: Record<string, string> = {
 export default function GameSessionPage() {
   const params = useParams()
   const router = useRouter()
+  // Keep screen awake during late-night bed play
+  useScreenWakeLock(true)
+
   const { activeSpaceId, currentUserId, configured, isLocalSandbox, demoActor, setDemoActor, loading: spaceLoading } =
     useSanctuary()
   const sessionId = typeof params.sessionId === 'string' ? params.sessionId : ''
   const previewTemplate = GAME_TEMPLATES.find((g) => g.id === sessionId) ?? null
   const targetSpaceId = activeSpaceId ?? 'space-1'
+  const [activeStake, setActiveStake] = React.useState<string>(KULFI_STAKES[0])
 
   // Live DB session state
   const [loading, setLoading] = React.useState(!previewTemplate && configured)
@@ -260,7 +269,13 @@ export default function GameSessionPage() {
     }
 
     return (
-      <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8 space-y-6">
+      <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8 space-y-6 pt-12">
+        <CallCompanionBar
+          partnerName="Partner"
+          activeGameTitle={localSession.title}
+          isInCall={true}
+        />
+
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
           <Link
             href="/games"
@@ -287,9 +302,32 @@ export default function GameSessionPage() {
           </div>
         </div>
 
-        <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8 space-y-6 shadow-xs">
+        {/* Kulfi Stakes Selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-2xl bg-[#fff4ee] dark:bg-[#251815] border border-[#f5cfbd] dark:border-[#42271f] p-4 text-xs shadow-xs">
+          <div className="flex items-center gap-2 font-bold text-[#e07a5f]">
+            <Flame className="h-4 w-4" />
+            <span>Tonight&rsquo;s Forfeit Wager:</span>
+          </div>
+          <select
+            value={activeStake}
+            onChange={(e) => {
+              setActiveStake(e.target.value)
+              triggerHaptic('light')
+              playBedtimeSound('paddle')
+            }}
+            className="rounded-full border border-[#f0c2ad] dark:border-[#523026] bg-white dark:bg-[#1b1c28] px-3.5 py-1.5 text-xs text-[var(--foreground)] font-semibold cursor-pointer shadow-xs"
+          >
+            {KULFI_STAKES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8 space-y-6 shadow-sm">
           <div className="space-y-2">
-            <span className="text-xs uppercase tracking-wider text-[var(--primary)] font-semibold">
+            <span className="text-xs uppercase tracking-wider text-[var(--primary)] font-bold">
               {localSession.title}
             </span>
             <h2 className="font-[family-name:var(--ds-font-display)] text-2xl sm:text-3xl font-bold text-[var(--foreground)] leading-snug">
@@ -300,16 +338,20 @@ export default function GameSessionPage() {
           {!myAnswer ? (
             <div className="space-y-4">
               {currentQ.options ? (
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {currentQ.options.map((option) => (
                     <button
                       key={option}
                       type="button"
-                      onClick={() => setMyAnswerInput(option)}
-                      className={`w-full text-left p-4 rounded-[var(--ds-radius)] text-sm transition-all cursor-pointer border ${
+                      onClick={() => {
+                        setMyAnswerInput(option)
+                        triggerHaptic('light')
+                        playBedtimeSound('lock')
+                      }}
+                      className={`w-full text-left p-4 rounded-2xl text-sm transition-all cursor-pointer border ${
                         myAnswerInput === option
-                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] font-medium ring-1 ring-[var(--primary)]'
-                          : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+                          ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] font-semibold ring-2 ring-[var(--primary)] scale-101 shadow-xs'
+                          : 'border-[var(--border)] bg-[var(--surface-0)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--primary)]/50'
                       }`}
                     >
                       {option}
@@ -322,12 +364,14 @@ export default function GameSessionPage() {
                   onChange={(e) => setMyAnswerInput(e.target.value)}
                   placeholder="Write your candid answer... (Partner cannot read it until they answer too)"
                   rows={4}
-                  className="w-full rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--background)] p-3.5 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] resize-none"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--background)] p-3.5 text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] resize-none"
                 />
               )}
 
               <Button
                 onClick={() => {
+                  triggerHaptic('heavy')
+                  playBedtimeSound('lock')
                   const next = submitLocalGameAnswer(
                     targetSpaceId,
                     localSession.id,
@@ -339,7 +383,7 @@ export default function GameSessionPage() {
                   setMyAnswerInput('')
                 }}
                 variant="primary"
-                className="w-full"
+                className="w-full rounded-full py-3 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white font-bold shadow-sm"
                 disabled={!myAnswerInput.trim()}
               >
                 <span>Lock In Answer ({demoActor === 'self' ? 'You' : 'Partner'})</span>
@@ -348,15 +392,15 @@ export default function GameSessionPage() {
             </div>
           ) : !revealed ? (
             <div className="rounded-[var(--ds-radius)] bg-[var(--muted)]/40 p-6 text-center space-y-3">
-              <Clock className="h-7 w-7 mx-auto text-[var(--primary)]" />
+              <Clock className="h-7 w-7 mx-auto text-[#e07a5f] animate-pulse" />
               <div className="space-y-1">
                 <h4 className="text-sm font-semibold text-[var(--foreground)]">
-                  Answer Sealed!
+                  Pick Sealed in the Vault!
                 </h4>
                 <p className="text-xs text-[var(--muted-foreground)]">
                   {demoActor === 'self'
-                    ? 'Waiting for Partner to answer this round before revealing side-by-side.'
-                    : 'Waiting for You to answer this round before revealing side-by-side.'}
+                    ? 'Tell your partner on the call to stop stalling and submit!'
+                    : 'Your turn to lock in an answer before both reveal side-by-side!'}
                 </p>
               </div>
               {isLocalSandbox && (
@@ -372,9 +416,26 @@ export default function GameSessionPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Answers Revealed!</span>
+              <div
+                className={`p-3.5 rounded-2xl text-center space-y-0.5 border ${
+                  myAnswer === otherAnswer
+                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                    : 'bg-[#fff2eb] dark:bg-[#281814] text-[#e07a5f] border-[#e07a5f]/20'
+                }`}
+              >
+                <div className="text-sm font-bold flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>
+                    {myAnswer === otherAnswer
+                      ? '✨ Synced Minds! You chose the exact same thing!'
+                      : '💥 Dramatic Disagreement!'}
+                  </span>
+                </div>
+                <p className="text-xs opacity-85">
+                  {myAnswer === otherAnswer
+                    ? '+25 Harmony Points awarded!'
+                    : `Loser pays the forfeit: "${activeStake}"`}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -396,6 +457,8 @@ export default function GameSessionPage() {
               {!isLastQuestion && (
                 <Button
                   onClick={() => {
+                    triggerHaptic('medium')
+                    playBedtimeSound('paddle')
                     const next = advanceLocalGameRound(
                       targetSpaceId,
                       localSession.id,
@@ -581,6 +644,8 @@ export default function GameSessionPage() {
 
   const handleSubmitDbAnswer = async () => {
     if (!myAnswerInput.trim() || !currentQuestion?.id) return
+    triggerHaptic('heavy')
+    playBedtimeSound('lock')
     setSubmitting(true)
     setError(null)
     try {
@@ -606,6 +671,8 @@ export default function GameSessionPage() {
   }
 
   const handleAdvanceRound = async () => {
+    triggerHaptic('medium')
+    playBedtimeSound('paddle')
     setAdvancing(true)
     setError(null)
     try {
@@ -676,7 +743,13 @@ export default function GameSessionPage() {
   const revealed = Boolean(sessionData?.revealed)
 
   return (
-    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8 space-y-8">
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-8 space-y-8 pt-12">
+      <CallCompanionBar
+        partnerName="Partner"
+        activeGameTitle={gameTitle}
+        isInCall={true}
+      />
+
       <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
         <Link
           href="/games"
@@ -694,6 +767,25 @@ export default function GameSessionPage() {
             Score: {myScore}
           </span>
         </div>
+      </div>
+
+      {/* Kulfi Stakes Pill */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-2xl bg-[#fff4ee] dark:bg-[#251815] border border-[#f5cfbd] dark:border-[#42271f] p-3.5 text-xs">
+        <div className="flex items-center gap-2 font-semibold text-[#e07a5f]">
+          <Flame className="h-4 w-4" />
+          <span>The Stakes:</span>
+        </div>
+        <select
+          value={activeStake}
+          onChange={(e) => setActiveStake(e.target.value)}
+          className="rounded-xl border border-[#f0c2ad] dark:border-[#523026] bg-white dark:bg-[#1b1c28] px-2.5 py-1 text-xs text-[var(--foreground)] font-medium cursor-pointer"
+        >
+          {KULFI_STAKES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
       </div>
 
       {error && (

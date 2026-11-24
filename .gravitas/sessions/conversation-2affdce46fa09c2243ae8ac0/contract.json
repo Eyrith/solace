@@ -1,0 +1,14 @@
+{
+  "mode": "implement",
+  "objective": "Enforce strict 1:1 partner sanctuary by removing multi-space and connection options",
+  "acceptance_criteria": [
+    "Remove 'New Connection' and multi-space creation UI from sanctuary components",
+    "Enforce strict 1:1 limit on private spaces in frontend state and mock/provider store",
+    "Restrict partner invite generation so it is only for initial pairing and closed once connected",
+    "Verify changes build and run cleanly"
+  ],
+  "allowed_write_scope": [
+    "*"
+  ],
+  "required_validators": []
+}

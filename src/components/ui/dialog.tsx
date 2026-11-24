@@ -37,8 +37,8 @@ export const DialogContent = React.forwardRef<
       ref={ref}
       className={cn(
         "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2",
-        "rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)]",
-        "p-6 shadow-xl focus:outline-none max-h-[85dvh] overflow-y-auto",
+        "rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--surface-1)] text-[var(--foreground)]",
+        "p-6 shadow-[var(--shadow-2)] focus:outline-none max-h-[85dvh] overflow-y-auto duration-200",
         className,
       )}
       {...props}
@@ -47,7 +47,7 @@ export const DialogContent = React.forwardRef<
       {!hideCloseButton && (
         <DialogPrimitive.Close
           aria-label="Close dialog"
-          className="absolute right-3.5 top-3.5 inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--ring)]"
+          className="absolute right-3.5 top-3.5 inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--muted-foreground)] hover:bg-[var(--surface-2)] hover:text-[var(--foreground)] cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--ring)] transition-colors"
         >
           <X className="h-4 w-4" aria-hidden="true" />
         </DialogPrimitive.Close>
@@ -77,7 +77,7 @@ export const DialogTitle = React.forwardRef<
   <DialogPrimitive.Title
     ref={ref}
     className={cn(
-      "font-[family-name:var(--ds-font-display)] text-xl font-semibold leading-snug tracking-tight",
+      "font-[family-name:var(--ds-font-display)] text-xl font-semibold leading-snug",
       className,
     )}
     {...props}

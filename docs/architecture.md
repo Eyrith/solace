@@ -11,8 +11,8 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                        BROWSER / CLIENT                         │
 │                                                                 │
-│  www.example.com ──► Public Editorial Portal (read-only face)  │
-│  app.example.com ──► Private Sanctuary (requires login)         │
+│  www.example.com ──► Unified Portal (Editorial Cover + Private Sanctuary) │
+│  app.example.com ──► 301 Permanent Redirect to www.example.com          │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ HTTPS
                      ┌─────▼──────────────┐
@@ -20,32 +20,33 @@
                      └─────────┬──────────┘
                                │ /api/* proxy rewrite
                      ┌─────────▼──────────┐
-                     │ Python FastAPI API │  backend/ (auth bridge, Matrix BFF,
+                     │ Python FastAPI API │  backend/ (auth bridge, stealth messaging,
                      │  + Async Workers   │  LiveKit tokens, RSS, retention)
                      └─────────┬──────────┘
-          ┌────────────────────┼────────────────────┐
-          │                    │                    │
-    ┌─────▼──────┐      ┌──────▼──────┐      ┌──────▼──────┐
-    │  Supabase  │      │   Synapse   │      │   LiveKit   │
-    │ PostgreSQL │      │  Homeserver │      │     SFU     │
-    │ Auth + RLS │      │ (Encrypted) │      │ (WebRTC)    │
-    └────────────┘      └─────────────┘      └─────────────┘
+          ┌────────────────────┴────────────────────┐
+          │                                         │
+    ┌─────▼──────┐                           ┌──────▼──────┐
+    │  Supabase  │                           │   LiveKit   │
+    │ PostgreSQL │                           │     SFU     │
+    │ Auth + RLS │                           │ (WebRTC)    │
+    └────────────┘                           └─────────────┘
 ```
 
-**Core principle:** Next.js + TypeScript power the dual editorial/Sanctuary UI and client-side Matrix E2EE (`matrix-js-sdk` WASM crypto in browser). Python (`FastAPI` in `backend/`) handles all custom backend API routes, auth session verification, Synapse admin provisioning/media governance, LiveKit token signing, RSS feed ingestion, webhooks, and scheduled retention workers. Supabase (PostgreSQL/Auth/RLS), Synapse, and LiveKit remain independent services.
+**Core principle:** Next.js + TypeScript power the dual editorial/Sanctuary UI with client-side WebCrypto encryption. Python (`FastAPI` in `backend/`) handles all custom backend API routes, auth session verification, LiveKit WebRTC token signing, RSS feed ingestion, webhooks, and scheduled retention workers. Supabase (PostgreSQL/Auth/RLS) and LiveKit remain independent services.
 
 ---
 
 ## 2. Host Routing Strategy
 
-### Middleware (`src/middleware.ts`)
+### Edge Proxy & Single-Host Routing (`src/proxy.ts`)
 
-The Next.js middleware runs on every request at the edge before any page renders. It inspects `request.headers.get('host')` and rewrites the URL to the appropriate route segment.
+In Next.js 16+, `src/proxy.ts` runs on every request at the edge before any page renders. Both the public editorial portal and private sanctuary live unified under the canonical `www.example.com` host:
 
 ```
-www.example.com → /public/* routes   (editorial portal)
-app.example.com → /app/* routes      (private sanctuary)
-localhost:3000  → /public/* by default (dev, see NEXT_PUBLIC_DEFAULT_HOST)
+www.example.com/               → Educational cover portal
+www.example.com/discover, etc. → Public editorial catalog
+www.example.com/sanctuary/*    → Protected private sanctuary (requires auth)
+app.example.com/*              → 301 Permanent Redirect to www.example.com/*
 ```
 
 **Why not separate deployments?**
@@ -130,11 +131,10 @@ src/                       ← Next.js + TypeScript Frontend & Browser Cryptogra
 ├── components/
 │   ├── ui/                ← Primitive, context-free UI atoms
 │   │   └── (button, input, card, dialog, toast, etc.)
-│   ├── providers/         ← Context providers (DesignSystem, MatrixProvider)
+│   ├── providers/         ← Context providers (DesignSystem, SanctuaryProvider)
 │   ├── editorial/         ← Public portal composite components
 │   │   └── (PublicShell, ArticleCard, PublicationCard, SearchBar, etc.)
-│   └── sanctuary/         ← Private app composite components
-│       └── (PrivateShell, ChatBubble, ChatComposer, VoiceNotePlayer, etc.)
+│   └── sanctuary/         ← Private app composite components (chat/, calls/, security/, shell/)
 │
 └── app/                   ← Next.js App Router UI pages (proxy.ts handles host routing)
 
@@ -142,8 +142,8 @@ backend/app/               ← Python 3.12 + FastAPI Backend Service
 ├── core/                  ← Settings, typed errors, Supabase SSR cookie/JWT auth
 ├── db/                    ← Async Supabase PostgREST/Auth/Storage/RPC gateway
 ├── schemas/               ← Pydantic request/response contracts
-├── services/              ← Synapse admin, Matrix auth, LiveKit tokens, feeds, retention
-├── routers/               ← FastAPI `/api/*` endpoints
+├── services/              ← LiveKit tokens, feeds, retention
+├── routers/               ← FastAPI `/api/*` endpoints (stealth_chat, webrtc_signal, etc.)
 └── workers/               ← APScheduler periodic RSS & retention jobs
 ```
 

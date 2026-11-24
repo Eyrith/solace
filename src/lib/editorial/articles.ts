@@ -14,6 +14,99 @@ export interface CuratedArticle {
   tags: string[]
   isFeatured?: boolean
   coverPattern?: 'geometry' | 'subtle-lines' | 'monolith' | 'botanical' | 'minimal'
+  image?: string
+  imageAlt?: string
+  imageCredit?: string
+}
+
+export interface ArticleImageAsset {
+  lead: string
+  card: string
+  thumb: string
+  alt: string
+  credit: string
+}
+
+export const CATEGORY_IMAGE_MAP: Record<string, ArticleImageAsset> = {
+  psychology: {
+    lead: '/editorial/psychology-1600.webp',
+    card: '/editorial/psychology-800.webp',
+    thumb: '/editorial/psychology-640.webp',
+    alt: 'Peaceful morning light and mindful contemplation',
+    credit: 'Photo by Jared Rice on Unsplash',
+  },
+  relationships: {
+    lead: '/editorial/relationships-1600.webp',
+    card: '/editorial/relationships-800.webp',
+    thumb: '/editorial/relationships-640.webp',
+    alt: 'Two people sharing quiet connection along a scenic landscape',
+    credit: 'Photo by Joanna Nix-Walkup on Unsplash',
+  },
+  philosophy: {
+    lead: '/editorial/philosophy-1600.webp',
+    card: '/editorial/philosophy-800.webp',
+    thumb: '/editorial/philosophy-640.webp',
+    alt: 'Classical stone columns and morning shadows in quiet cloister',
+    credit: 'Photo by Mitchell Orr on Unsplash',
+  },
+  science: {
+    lead: '/editorial/science-1600.webp',
+    card: '/editorial/science-800.webp',
+    thumb: '/editorial/science-640.webp',
+    alt: 'Starry night sky and cosmos viewed above quiet mountain forest',
+    credit: 'Photo by Vincentiu Solomon on Unsplash',
+  },
+  literature: {
+    lead: '/editorial/literature-1600.webp',
+    card: '/editorial/literature-800.webp',
+    thumb: '/editorial/literature-640.webp',
+    alt: 'Open pages of a literature volume on a wooden reading desk',
+    credit: 'Photo by Patrick Tomasso on Unsplash',
+  },
+}
+
+export interface ArticleImageQuery {
+  image?: string | null
+  imageAlt?: string | null
+  coverImageUrl?: string | null
+  title?: string | null
+  category?: string | { slug?: string; name?: string } | null
+  imageCredit?: string | null
+}
+
+export function getArticleImage(article: ArticleImageQuery): ArticleImageAsset {
+  if (article.image) {
+    return {
+      lead: article.image,
+      card: article.image,
+      thumb: article.image,
+      alt: article.imageAlt || article.title || 'Editorial article cover',
+      credit: article.imageCredit || 'Unsplash License',
+    }
+  }
+  if (article.coverImageUrl) {
+    return {
+      lead: article.coverImageUrl,
+      card: article.coverImageUrl,
+      thumb: article.coverImageUrl,
+      alt: article.imageAlt || article.title || 'Editorial article cover',
+      credit: article.imageCredit || 'Unsplash License',
+    }
+  }
+  const rawCat =
+    typeof article.category === 'object' && article.category
+      ? article.category.slug || article.category.name
+      : article.category
+  const cat = (rawCat || 'literature').toLowerCase()
+  return (
+    CATEGORY_IMAGE_MAP[cat] || {
+      lead: '/editorial/lead-hero-1600.webp',
+      card: '/editorial/lead-hero-800.webp',
+      thumb: '/editorial/lead-hero-640.webp',
+      alt: 'Editorial photograph',
+      credit: 'Photo by Alex Perez on Unsplash',
+    }
+  )
 }
 
 export const CURATED_ARTICLES: CuratedArticle[] = [
@@ -366,4 +459,13 @@ export const TOPIC_METADATA = {
       'Essays on prose, poetry, author reflections, and the capacity of great novels to foster profound empathy and moral imagination.',
   },
 } as const
+
+export function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
 

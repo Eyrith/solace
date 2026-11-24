@@ -97,10 +97,7 @@ function LoginForm() {
     <div className="mx-auto max-w-md px-4 py-16 sm:py-24 space-y-8">
       {/* Discreet Editorial Header */}
       <div className="text-center space-y-2">
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--muted)] text-[var(--primary)] mb-2">
-          <BookOpen className="h-5 w-5" />
-        </div>
-        <h1 className="font-[family-name:var(--ds-font-display)] text-3xl font-bold tracking-tight text-[var(--foreground)]">
+        <h1 className="font-[family-name:var(--ds-font-display)] text-3xl font-bold text-[var(--foreground)]">
           Reader Sign In
         </h1>
         <p className="text-xs sm:text-sm text-[var(--muted-foreground)] leading-relaxed">

@@ -34,7 +34,7 @@ export default function SavedArticlesPage() {
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold tracking-tight text-[var(--foreground)]">
+            <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold text-[var(--foreground)]">
               Saved Inquiries
             </h1>
             <p className="text-sm text-[var(--muted-foreground)] font-light">
@@ -50,22 +50,23 @@ export default function SavedArticlesPage() {
       </header>
 
       {savedArticles.length === 0 ? (
-        <div className="rounded-[var(--ds-radius)] border border-dashed border-[var(--border)] p-12 text-center space-y-4 max-w-md mx-auto my-12">
-          <div className="mx-auto h-12 w-12 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)]">
-            <Bookmark className="h-6 w-6" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-medium text-[var(--foreground)]">Your reading list is empty</h3>
-            <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
-              When exploring essays across Psychology, Philosophy, or Relationships, click the bookmark icon to save them here for later reflection.
+        <div className="py-20 text-center space-y-4 max-w-sm mx-auto">
+          <div className="space-y-2">
+            <h3 className="font-[family-name:var(--ds-font-display)] text-xl font-medium text-[var(--foreground)]">
+              Your reading list is empty
+            </h3>
+            <p className="text-sm text-[var(--muted-foreground)] leading-relaxed font-light">
+              When exploring essays across psychology, philosophy, or literature, save them here for later reflection.
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/discover">
-              <Compass className="h-4 w-4 mr-1.5" />
-              Explore Articles
-            </Link>
-          </Button>
+          <div className="pt-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/discover">
+                <Compass className="h-4 w-4 mr-1.5" />
+                Explore Articles
+              </Link>
+            </Button>
+          </div>
         </div>
       ) : (
         <ArticleFeed articles={savedArticles} />

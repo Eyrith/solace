@@ -43,7 +43,7 @@ export default function ReadingHistoryPage() {
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold tracking-tight text-[var(--foreground)]">
+            <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold text-[var(--foreground)]">
               Reading History
             </h1>
             <p className="text-sm text-[var(--muted-foreground)] font-light">
@@ -67,46 +67,42 @@ export default function ReadingHistoryPage() {
         </div>
       </header>
 
-      {/* Privacy Control Panel */}
-      <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-4 sm:p-5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="h-5 w-5 text-[var(--primary)] shrink-0" />
-          <div>
-            <div className="text-sm font-medium text-[var(--foreground)]">
-              Local History Recording
-            </div>
-            <div className="text-xs text-[var(--muted-foreground)]">
-              {historyEnabled
-                ? 'Active — articles you read are logged locally for quick return.'
-                : 'Paused — no new reading history will be stored on this device.'}
-            </div>
+      {/* Privacy Control Bar */}
+      <div className="border-b border-[var(--border)]/70 pb-6 flex items-center justify-between gap-4">
+        <div>
+          <div className="text-sm font-medium text-[var(--foreground)]">
+            Local history recording
+          </div>
+          <div className="text-xs text-[var(--muted-foreground)] font-light">
+            {historyEnabled
+              ? 'Active — opened essays are logged locally in your browser for quick return.'
+              : 'Paused — no new reading history will be stored on this device.'}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={historyEnabled}
-            onCheckedChange={setHistoryTracking}
-            aria-label="Toggle history recording"
-          />
-        </div>
+        <Switch
+          checked={historyEnabled}
+          onCheckedChange={setHistoryTracking}
+          aria-label="Toggle history recording"
+        />
       </div>
 
       {/* History List */}
       {historyEntries.length === 0 ? (
-        <div className="rounded-[var(--ds-radius)] border border-dashed border-[var(--border)] p-12 text-center space-y-4 max-w-md mx-auto my-12">
-          <div className="mx-auto h-12 w-12 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)]">
-            <Clock className="h-6 w-6" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-medium text-[var(--foreground)]">No reading history yet</h3>
-            <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
-              When you open essays to read at Psyche, Aeon, or The Marginalian, they will appear here so you can easily reference them again.
+        <div className="py-20 text-center space-y-4 max-w-sm mx-auto">
+          <div className="space-y-2">
+            <h3 className="font-[family-name:var(--ds-font-display)] text-xl font-medium text-[var(--foreground)]">
+              No reading history yet
+            </h3>
+            <p className="text-sm text-[var(--muted-foreground)] leading-relaxed font-light">
+              When you open essays to read across our curated publications, they will appear here so you can easily reference them again.
             </p>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/discover">Browse Inquiries</Link>
-          </Button>
+          <div className="pt-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/discover">Browse Inquiries</Link>
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-[var(--ds-radius)] bg-[var(--card)]">

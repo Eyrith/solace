@@ -1,0 +1,14 @@
+{
+  "mode": "implement",
+  "objective": "Add database indexing and optimize Supabase queries; use direct LiveKit Data Channels instead of HTTP polling/relaying for WebRTC signaling; move static data and caching to Redis or in-memory LRU caches",
+  "acceptance_criteria": [
+    "Add database indexes for Supabase tables and optimize queries",
+    "Replace HTTP WebRTC signaling polling/relay with direct LiveKit Data Channels",
+    "Implement in-memory LRU / Redis caching for static data and endpoints",
+    "Verify tests pass and ensure no regressions"
+  ],
+  "allowed_write_scope": [
+    "*"
+  ],
+  "required_validators": []
+}

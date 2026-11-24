@@ -1,0 +1,17 @@
+{
+  "mode": "implement",
+  "objective": "Purge all leftover Matrix code and dependencies",
+  "acceptance_criteria": [
+    "Unwrap MatrixProvider from layout",
+    "Remove src/lib/matrix and leftover matrix components",
+    "Uninstall matrix-js-sdk and matrix-encrypt-attachment",
+    "Remove backend matrix routes and Synapse admin services",
+    "Clean docker-compose.yml and infra/matrix",
+    "Verify typecheck passes without errors",
+    "Verify vitest suite passes without errors"
+  ],
+  "allowed_write_scope": [
+    "*"
+  ],
+  "required_validators": []
+}

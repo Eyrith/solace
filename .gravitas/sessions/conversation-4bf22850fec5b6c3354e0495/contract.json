@@ -1,0 +1,12 @@
+{
+  "mode": "implement",
+  "objective": "Strip dummy UI, remove space switcher, remove sandbox toggles, streamline 1:1 chat",
+  "acceptance_criteria": [
+    "Remove space switcher",
+    "Remove As: You/Partner toggle",
+    "Remove fake imessage tags",
+    "Streamline chat to 1:1"
+  ],
+  "budget": "balanced",
+  "session_key": "conversation-4bf22850fec5b6c3354e0495"
+}

@@ -8,6 +8,7 @@ export interface GameTemplate {
     | 'guess_partner'
     | 'truth_or_dare'
     | 'personality'
+    | 'co_op'
   description: string
   icon: string
   durationMinutes: number
@@ -178,5 +179,119 @@ export const GAME_TEMPLATES: GameTemplate[] = [
       },
     ],
   },
+  {
+    id: 'game-likely-01',
+    title: "Who's More Likely To? (Bedtime Showdown)",
+    category: 'guess_partner',
+    description: 'Kulfi-style rapid simultaneous voting. Both tap Me or Them on 3... 2... 1!',
+    icon: '⚡',
+    durationMinutes: 4,
+    questionCount: 5,
+    questions: [
+      {
+        id: 'wml-1',
+        prompt: 'Who is more likely to panic and search for a charger when their phone hits 5%?',
+        options: ['Me', 'Them'],
+        type: 'choice',
+      },
+      {
+        id: 'wml-2',
+        prompt: 'Who is more likely to stay up until 2 AM researching something completely random on YouTube?',
+        options: ['Me', 'Them'],
+        type: 'choice',
+      },
+      {
+        id: 'wml-3',
+        prompt: 'Who is more likely to cry during a heartfelt movie or dog video?',
+        options: ['Me', 'Them'],
+        type: 'choice',
+      },
+      {
+        id: 'wml-4',
+        prompt: 'Who takes longer to pick what to eat when ordering takeout?',
+        options: ['Me', 'Them'],
+        type: 'choice',
+      },
+      {
+        id: 'wml-5',
+        prompt: 'Who is more likely to accidentally fall asleep first while on a late-night call?',
+        options: ['Me', 'Them'],
+        type: 'choice',
+      },
+    ],
+  },
+  {
+    id: 'game-dilemmas-01',
+    title: 'Late Night Dilemmas & Spicy Stakes',
+    category: 'would_you_rather',
+    description: 'Playful dilemmas with real stakes. Disagreements mean the loser pays the forfeit!',
+    icon: '🌶️',
+    durationMinutes: 5,
+    questionCount: 4,
+    questions: [
+      {
+        id: 'lnd-1',
+        prompt: 'Would you rather we swap phones for 1 full hour with zero restrictions, or delete all social media apps for 3 days?',
+        options: ['Swap phones for 1 hour', 'Delete social media for 3 days'],
+        type: 'choice',
+      },
+      {
+        id: 'lnd-2',
+        prompt: 'Would you rather always have to answer each other’s calls within 2 rings, or never be able to hang up first?',
+        options: ['Answer within 2 rings always', 'Never hang up first'],
+        type: 'choice',
+      },
+      {
+        id: 'lnd-3',
+        prompt: 'Would you rather spend 1 week living in a secluded treehouse with no Wi-Fi, or 1 weekend at a luxury 5-star resort with non-stop parties?',
+        options: ['Secluded offline treehouse', '5-star luxury party weekend'],
+        type: 'choice',
+      },
+      {
+        id: 'lnd-4',
+        prompt: 'Would you rather I plan an entire surprise weekend trip without your input, or you plan everything and I just show up?',
+        options: ['You surprise me completely', 'I plan and you follow along'],
+        type: 'choice',
+      },
+    ],
+  },
+  {
+    id: 'game-coop-river-01',
+    title: 'Two-Boat River (Split-Control Co-Op)',
+    category: 'co_op',
+    description: 'Kulfi-style real-time split controls. One partners steers the rudder, one sets the paddle thrust. Collect lotus lanterns together!',
+    icon: '🛶',
+    durationMinutes: 3,
+    questionCount: 3,
+    questions: [
+      {
+        id: 'coop-1',
+        prompt: 'River Stage 1: The Sunset Shallows (Synchronize steering and speed to gather 5 lanterns)',
+        type: 'choice',
+        options: ['Ready on Helm (Steering)', 'Ready on Engine (Speed)'],
+      },
+      {
+        id: 'coop-2',
+        prompt: 'River Stage 2: The Firefly Gorge (Avoid river eddies and rocks while maintaining momentum)',
+        type: 'choice',
+        options: ['Glide smoothly', 'Speed boost ahead'],
+      },
+      {
+        id: 'coop-3',
+        prompt: 'River Stage 3: The Midnight Sanctuary (Reach the temple gates together before the lantern fades)',
+        type: 'choice',
+        options: ['Drop anchor together', 'Paddle in triumph'],
+      },
+    ],
+  },
 ]
+
+export const KULFI_STAKES = [
+  '☕ Loser makes tomorrow morning’s chai/coffee',
+  '🍰 Loser orders dessert delivery tonight',
+  '🎤 Loser sings 30s of their most embarrassing guilty-pleasure song',
+  '💆 15-minute uninterrupted back/shoulder massage',
+  '👑 Unbearable bragging rights for the next 24 hours',
+  '📸 Loser shares the single most unhinged selfie in their camera roll',
+] as const
 

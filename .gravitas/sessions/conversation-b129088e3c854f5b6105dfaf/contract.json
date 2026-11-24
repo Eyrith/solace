@@ -1,0 +1,15 @@
+{
+  "mode": "implement",
+  "objective": "Deep investigation of Solace codebase worker",
+  "acceptance_criteria": [
+    "Step 1 Inspect the project complete",
+    "Step 2 Inspect every existing page complete",
+    "Step 3 Evaluate the current implementation complete",
+    "Step 4 Identify technical risks complete",
+    "Step 5 Present your findings complete"
+  ],
+  "allowed_write_scope": [
+    "*"
+  ],
+  "required_validators": []
+}

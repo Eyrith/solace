@@ -1,7 +1,7 @@
 import { CategoryView } from '@/components/editorial/category-view'
 
 export const metadata = {
-  title: 'Literature — Commonplace',
+  title: 'Literature',
   description: 'Inquiries into poetic attention, diaries, fiction as psychological laboratory, and deep prose.',
 }
 

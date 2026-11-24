@@ -14,12 +14,13 @@ from app.routers import (
     games,
     health,
     livekit,
-    matrix,
     messages,
     questions,
     sanctuary,
     spaces,
+    stealth_chat,
     webhooks,
+    webrtc_signal,
 )
 from app.workers.scheduler import build_background_scheduler
 
@@ -53,6 +54,7 @@ def create_app() -> FastAPI:
 
     allowed_origins = {
         settings.next_public_app_url.rstrip("/"),
+        settings.next_public_public_url.rstrip("/"),
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     }
@@ -77,8 +79,9 @@ def create_app() -> FastAPI:
 
     app.add_exception_handler(BackendApiError, backend_api_error_handler)  # type: ignore[arg-type]
     app.include_router(health.router)
+    app.include_router(stealth_chat.router)
+    app.include_router(webrtc_signal.router)
     app.include_router(account.router)
-    app.include_router(matrix.router)
     app.include_router(spaces.router)
     app.include_router(messages.router)
     app.include_router(games.router)

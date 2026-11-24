@@ -1,6 +1,10 @@
-# Strict Client-Side E2EE for Private Media
+# [HISTORICAL SPEC] Strict Client-Side E2EE for Private Media
 
-This document describes the architecture, cryptographic primitives, key management, authenticated access controls, deletion/retention policies, and administrator storage workflows for private Sanctuary media (photos, thumbnails, videos, voice notes, and attachments).
+> [!NOTE]
+> **Status: Superseded / Retired.**
+> The Matrix Synapse architecture has been superseded by the direct lightweight stealth messaging and WebRTC signaling engine (`backend/app/routers/stealth_chat.py` and `backend/app/routers/webrtc_signal.py`) to eliminate homeserver RAM overhead and WASM bootstrap latency for the 2-person sanctuary.
+
+This document describes the earlier architecture, cryptographic primitives, key management, authenticated access controls, deletion/retention policies, and administrator storage workflows for private Sanctuary media.
 
 Every mechanism builds on Matrix's audited, standardized protocols (`matrix-encrypt-attachment`, `matrix-js-sdk` Rust crypto WASM, Olm/Megolm, Cross-Signing, 4S Secret Storage, and MSC3916 Authenticated Media). No custom encryption algorithms are introduced.
 

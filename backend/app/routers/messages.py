@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import UTC, datetime
 from typing import Annotated, Any
@@ -84,26 +85,24 @@ async def list_messages(
     messages = rows if isinstance(rows, list) else []
     msg_ids = [m["id"] for m in messages if m.get("id")]
 
-    reactions_rows = (
-        await gateway.select(
-            "message_reactions",
-            columns="id,message_id,user_id,emoji",
-            filters={"message_id": f"in.({','.join(msg_ids)})"},
-            access_token=user.access_token,
+    if msg_ids:
+        in_msgs = f"in.({','.join(msg_ids)})"
+        reactions_rows, receipts_rows = await asyncio.gather(
+            gateway.select(
+                "message_reactions",
+                columns="id,message_id,user_id,emoji",
+                filters={"message_id": in_msgs},
+                access_token=user.access_token,
+            ),
+            gateway.select(
+                "message_receipts",
+                columns="message_id,user_id,viewed_at",
+                filters={"message_id": in_msgs},
+                access_token=user.access_token,
+            ),
         )
-        if msg_ids
-        else []
-    )
-    receipts_rows = (
-        await gateway.select(
-            "message_receipts",
-            columns="message_id,user_id,viewed_at",
-            filters={"message_id": f"in.({','.join(msg_ids)})"},
-            access_token=user.access_token,
-        )
-        if msg_ids
-        else []
-    )
+    else:
+        reactions_rows, receipts_rows = [], []
 
     by_id = {m["id"]: m for m in messages if m.get("id")}
     reactions_by_msg: dict[str, list[dict[str, Any]]] = {}

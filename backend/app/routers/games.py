@@ -3,6 +3,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
+from app.core.cache import static_data_cache
 from app.core.config import Settings, get_settings
 from app.core.deps import (
     get_optional_supabase_user,
@@ -110,16 +111,20 @@ async def start_game_session(
 
     await verify_space_membership(gateway, user, space_id)
 
-    db_questions = await gateway.select(
-        "question_library",
-        columns="id",
-        filters={"game_template_id": f"eq.{template_id}"},
-        order="slug.asc",
-        access_token=user.access_token,
+    async def _fetch_template_qids():
+        db_q = await gateway.select(
+            "question_library",
+            columns="id",
+            filters={"game_template_id": f"eq.{template_id}"},
+            order="slug.asc",
+            access_token=user.access_token,
+        )
+        return [q["id"] for q in (db_q or []) if isinstance(q, dict) and q.get("id")]
+
+    fetched_qids = await static_data_cache.get_or_set(
+        f"game_template_qids:{template_id}", _fetch_template_qids, ttl=600
     )
-    question_ids = [
-        q["id"] for q in (db_questions or []) if isinstance(q, dict) and q.get("id")
-    ] or list(template["question_ids"])
+    question_ids = fetched_qids or list(template["question_ids"])
 
     created = await gateway.insert(
         "game_sessions",

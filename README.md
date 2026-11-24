@@ -5,8 +5,10 @@ A dual-experience private communication platform with an editorial public face.
 ## Structure
 
 ```
-www.example.com   → Public editorial reading portal (Psyche, Aeon, etc.)
-app.example.com   → Private 2-person sanctuary (messaging, games, calls)
+www.example.com   → Unified single-host platform:
+                    • Public editorial reading portal (Psyche, Aeon, etc.)
+                    • Private 2-person sanctuary (messaging, games, calls)
+                    (Legacy app.example.com 301 redirects to www.example.com)
 ```
 
 ## Tech Stack

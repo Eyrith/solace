@@ -1,4 +1,4 @@
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -79,14 +79,4 @@ class ToggleSavedArticleRequest(BaseModel):
 
 class RecordReadingHistoryRequest(BaseModel):
     articleId: str = ""
-
-
-class EphemeralMediaTimerRequest(BaseModel):
-    spaceId: str = ""
-    matrixRoomId: str = ""
-    matrixEventId: str = ""
-    matrixServerName: str | None = None
-    matrixMediaId: str | None = None
-    expiresAt: str = ""
-    extra: dict[str, Any] | None = None
 

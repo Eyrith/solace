@@ -1,12 +1,15 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { ArrowUpRight, BookOpen, Bookmark, Check, NotebookPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export interface EditorialArticle {
   id: string;
+  slug?: string;
   title: string;
   author?: string;
   publication: string;
@@ -16,6 +19,8 @@ export interface EditorialArticle {
   originalUrl: string;
   category: string;
   readingDurationMinutes?: number;
+  image?: string;
+  imageAlt?: string;
 }
 
 export interface ArticleCardProps {
@@ -47,6 +52,8 @@ export function ArticleCard({
     onOpenArticle?.(article);
   };
 
+  const articleHref = article.slug ? `/articles/${article.slug}` : undefined;
+
   if (variant === "row") {
     return (
       <article
@@ -70,7 +77,14 @@ export function ArticleCard({
         </div>
 
         <div className="flex items-start justify-between gap-3">
-          {onOpenReader ? (
+          {articleHref ? (
+            <Link
+              href={articleHref}
+              className="text-left font-[family-name:var(--ds-font-display)] text-lg font-medium leading-snug text-[var(--foreground)] hover:underline underline-offset-4"
+            >
+              {article.title}
+            </Link>
+          ) : onOpenReader ? (
             <button
               type="button"
               onClick={() => onOpenReader(article)}
@@ -90,7 +104,13 @@ export function ArticleCard({
             </a>
           )}
           <div className="flex items-center gap-1 shrink-0">
-            {onOpenReader && (
+            {articleHref ? (
+              <Button variant="ghost" size="icon" asChild aria-label={`Read brief and notes for ${article.title}`}>
+                <Link href={articleHref}>
+                  <BookOpen className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            ) : onOpenReader ? (
               <button
                 type="button"
                 onClick={() => onOpenReader(article)}
@@ -99,7 +119,7 @@ export function ArticleCard({
               >
                 <BookOpen className="h-4 w-4" aria-hidden="true" />
               </button>
-            )}
+            ) : null}
             {onToggleSave && (
               <button
                 type="button"
@@ -118,7 +138,7 @@ export function ArticleCard({
           </div>
         </div>
 
-        <p className="text-sm text-[var(--muted-foreground)] line-clamp-2 max-w-[68ch] leading-relaxed">
+        <p className="text-sm text-[var(--muted-foreground)] line-clamp-2 max-w-[68ch] leading-relaxed font-[family-name:var(--ds-font-editorial)]">
           {article.description}
         </p>
 
@@ -135,12 +155,32 @@ export function ArticleCard({
   return (
     <article
       className={cn(
-        "flex flex-col justify-between rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)]",
-        isFeatured ? "p-6 sm:p-8" : "p-5",
+        "flex flex-col justify-between bg-[var(--card)] transition-colors overflow-hidden group",
+        isFeatured
+          ? "rounded-xl border border-[var(--border)] p-6 sm:p-8 shadow-xs"
+          : "rounded-lg border border-[var(--border)]/80 p-5 sm:p-6",
         className,
       )}
     >
-      <div className="space-y-3">
+      <div className="space-y-4">
+        {/* Real photography using next/image with explicit sizes (No captions) */}
+        {article.image && (
+          <div
+            className={cn(
+              "relative w-full overflow-hidden rounded-[var(--ds-radius)] border border-[var(--border)]",
+              isFeatured ? "aspect-[16/9] mb-4" : "aspect-[16/10] mb-3",
+            )}
+          >
+            <Image
+              src={article.image}
+              alt={article.imageAlt || article.title}
+              fill
+              sizes={isFeatured ? "(max-width: 768px) 100vw, 800px" : "(max-width: 640px) 100vw, 400px"}
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--muted-foreground)]">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="font-semibold text-[var(--foreground)]">{article.publication}</span>
@@ -159,11 +199,18 @@ export function ArticleCard({
 
         <h2
           className={cn(
-            "font-[family-name:var(--ds-font-display)] font-semibold tracking-tight text-[var(--foreground)]",
-            isFeatured ? "text-2xl sm:text-4xl leading-[1.15]" : "text-xl leading-snug",
+            "font-[family-name:var(--ds-font-display)] font-semibold text-[var(--foreground)]",
+            isFeatured ? "text-2xl sm:text-4xl leading-[1.18]" : "text-xl leading-snug",
           )}
         >
-          {onOpenReader ? (
+          {articleHref ? (
+            <Link
+              href={articleHref}
+              className="text-left hover:underline underline-offset-4 decoration-[var(--border)]"
+            >
+              {article.title}
+            </Link>
+          ) : onOpenReader ? (
             <button
               type="button"
               onClick={() => onOpenReader(article)}
@@ -186,7 +233,7 @@ export function ArticleCard({
 
         <p
           className={cn(
-            "text-[var(--muted-foreground)] leading-relaxed max-w-[68ch]",
+            "text-[var(--muted-foreground)] leading-relaxed max-w-[68ch] font-[family-name:var(--ds-font-editorial)]",
             isFeatured ? "text-base sm:text-lg" : "text-sm",
           )}
         >
@@ -194,7 +241,7 @@ export function ArticleCard({
         </p>
 
         {isFeatured && article.keyTakeaway && (
-          <p className="border-l-2 border-[var(--primary)]/60 pl-3 text-sm italic text-[var(--foreground)]/80">
+          <p className="border-l-2 border-[var(--primary)]/60 pl-3 text-sm italic text-[var(--foreground)]/80 font-[family-name:var(--ds-font-editorial)]">
             “{article.keyTakeaway}”
           </p>
         )}
@@ -207,17 +254,24 @@ export function ArticleCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {onOpenReader && (
+          {articleHref ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={articleHref}>
+                <BookOpen className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                <span>Read Essay</span>
+              </Link>
+            </Button>
+          ) : onOpenReader ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenReader(article)}
             >
-              <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>Brief &amp; Notes</span>
+              <BookOpen className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+              <span>Read Essay</span>
             </Button>
-          )}
+          ) : null}
           {onToggleSave && (
             <Button
               type="button"
@@ -241,8 +295,8 @@ export function ArticleCard({
               rel="noopener noreferrer"
               onClick={handleOutboundClick}
             >
-              <span>Read at {article.publication}</span>
-              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{article.publication}</span>
+              <ArrowUpRight className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
             </a>
           </Button>
         </div>
@@ -250,4 +304,3 @@ export function ArticleCard({
     </article>
   );
 }
-

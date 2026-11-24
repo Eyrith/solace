@@ -98,7 +98,7 @@ export default function NotificationSettingsPage() {
               </div>
             </div>
             <p className="text-xs text-[var(--muted-foreground)] max-w-md leading-relaxed">
-              When enabled, incoming alerts never show sender names, relationship status, or message previews. Notifications will only appear as a neutral educational notification (e.g. &ldquo;Commonplace · New reading item available&rdquo;).
+              When enabled, incoming alerts never show sender names, relationship status, or message previews. Notifications will only appear as a neutral educational notification (e.g. &ldquo;Meridian · New reading item available&rdquo;).
             </p>
           </div>
 
@@ -191,7 +191,7 @@ export default function NotificationSettingsPage() {
                 </div>
                 <div className="text-sm font-semibold text-[var(--foreground)]">
                   {discreetNotifications
-                    ? 'Commonplace · New reading item available'
+                    ? 'Meridian · New reading item available'
                     : 'Sanctuary · New note waiting from Partner'}
                 </div>
                 <div className="text-xs text-[var(--muted-foreground)]">

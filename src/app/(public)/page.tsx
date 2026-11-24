@@ -18,22 +18,21 @@ export default async function PublicHomePage() {
   return (
     <div className="space-y-16 py-8 sm:py-12">
       {/* ── Masthead ────────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 border-b border-[var(--border)] pb-10">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pb-12 border-b border-[var(--border)]">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-3 max-w-2xl">
-            <div className="inline-flex items-center gap-2 text-xs font-medium tracking-wider uppercase text-[var(--muted-foreground)]">
-              <Sparkles className="h-3.5 w-3.5 text-[var(--primary)]" aria-hidden="true" />
-              <span>Independent Inquiries · Volume I</span>
-            </div>
-            <h1 className="font-[family-name:var(--ds-font-display)] text-4xl sm:text-6xl font-bold tracking-tight text-[var(--foreground)] leading-[1.08]">
+          <div className="space-y-4 max-w-2xl">
+            <p className="text-xs font-serif italic text-[var(--muted-foreground)]">
+              Curated essays across psychology, human relationships, and philosophical inquiry
+            </p>
+            <h1 className="font-[family-name:var(--ds-font-display)] text-4xl sm:text-6xl font-bold text-[var(--foreground)] leading-[1.1]">
               Essays on Mind, Emotion &amp; Human Bond
             </h1>
             <p className="text-base sm:text-lg text-[var(--muted-foreground)] leading-relaxed font-light">
-              A curated common place bringing together rigorous essays, psychological research, and philosophical reflections from independent publications worldwide.
+              An independent journal gathering rigorous inquiry, psychological research, and philosophical reflections from publications worldwide.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <Button variant="outline" size="sm" asChild>
               <Link href="/discover">
                 <Compass className="h-4 w-4 mr-1.5" />
@@ -49,9 +48,9 @@ export default async function PublicHomePage() {
           </div>
         </div>
 
-        {/* Quick Topic Pills */}
-        <div className="mt-8 flex flex-wrap items-center gap-2 pt-6 border-t border-[var(--border)]/60 text-xs">
-          <span className="text-[var(--muted-foreground)] mr-2 font-medium">EXPLORE FIELDS:</span>
+        {/* Quiet Topic Index Navigation */}
+        <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-sm text-[var(--muted-foreground)]">
+          <span className="text-xs text-[var(--muted-foreground)]/80">Fields of inquiry:</span>
           {[
             { label: 'Psychology', href: '/psychology' },
             { label: 'Relationships', href: '/relationships' },
@@ -62,7 +61,7 @@ export default async function PublicHomePage() {
             <Link
               key={topic.label}
               href={topic.href}
-              className="rounded-full border border-[var(--border)] bg-[var(--card)] px-3.5 py-1 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--primary)] transition-colors"
+              className="text-xs hover:text-[var(--foreground)] transition-colors hover:underline underline-offset-4"
             >
               {topic.label}
             </Link>
@@ -73,14 +72,14 @@ export default async function PublicHomePage() {
       {/* ── Lead Featured Story & Highlights ────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-baseline justify-between mb-8 pb-3 border-b border-[var(--border)]">
-          <h2 className="font-[family-name:var(--ds-font-display)] text-2xl sm:text-3xl font-semibold tracking-tight">
+          <h2 className="font-[family-name:var(--ds-font-display)] text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
             Featured Inquiries
           </h2>
           <Link
             href="/discover"
-            className="text-xs font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+            className="text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors inline-flex items-center gap-1"
           >
-            All articles <ArrowRight className="h-3 w-3" />
+            All essays <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
 
@@ -88,13 +87,13 @@ export default async function PublicHomePage() {
       </section>
 
       {/* ── Pull Quote of Reflection ────────────────────────────────────────── */}
-      <section className="bg-[var(--muted)]/40 border-y border-[var(--border)] py-14">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center space-y-4">
-          <blockquote className="font-[family-name:var(--ds-font-display)] italic text-xl sm:text-2xl text-[var(--foreground)] leading-relaxed">
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="border-l-2 border-[var(--primary)]/50 pl-6 sm:pl-8 space-y-3">
+          <blockquote className="font-[family-name:var(--ds-font-display)] text-xl sm:text-2xl text-[var(--foreground)] leading-relaxed font-normal">
             &ldquo;Love consists in this: that two solitudes protect and touch and greet each other.&rdquo;
           </blockquote>
-          <cite className="block text-xs uppercase tracking-widest text-[var(--muted-foreground)] not-italic">
-            — Rainer Maria Rilke, <span className="italic">Letters to a Young Poet</span>
+          <cite className="block text-xs text-[var(--muted-foreground)] not-italic font-serif">
+            Rainer Maria Rilke, <span className="italic">Letters to a Young Poet</span>
           </cite>
         </div>
       </section>
@@ -103,7 +102,7 @@ export default async function PublicHomePage() {
       <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-baseline justify-between mb-8 pb-3 border-b border-[var(--border)]">
           <div>
-            <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold tracking-tight">
+            <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold text-[var(--foreground)]">
               Psychology &amp; Inner Well-Being
             </h2>
             <p className="text-xs text-[var(--muted-foreground)] mt-1">
@@ -112,9 +111,9 @@ export default async function PublicHomePage() {
           </div>
           <Link
             href="/psychology"
-            className="text-xs font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+            className="text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors inline-flex items-center gap-1"
           >
-            Psychology section <ArrowRight className="h-3 w-3" />
+            Field overview <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
 
@@ -125,7 +124,7 @@ export default async function PublicHomePage() {
       <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-baseline justify-between mb-8 pb-3 border-b border-[var(--border)]">
           <div>
-            <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold tracking-tight">
+            <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold text-[var(--foreground)]">
               Relationships &amp; Tenderness
             </h2>
             <p className="text-xs text-[var(--muted-foreground)] mt-1">
@@ -134,9 +133,9 @@ export default async function PublicHomePage() {
           </div>
           <Link
             href="/relationships"
-            className="text-xs font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+            className="text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors inline-flex items-center gap-1"
           >
-            Relationships section <ArrowRight className="h-3 w-3" />
+            Field overview <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
 
@@ -144,10 +143,10 @@ export default async function PublicHomePage() {
       </section>
 
       {/* ── Publications Strip ──────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-baseline justify-between mb-8 pb-3 border-b border-[var(--border)]">
           <div>
-            <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold tracking-tight">
+            <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold text-[var(--foreground)]">
               Curated Publications
             </h2>
             <p className="text-xs text-[var(--muted-foreground)] mt-1">
@@ -156,7 +155,7 @@ export default async function PublicHomePage() {
           </div>
           <Link
             href="/publications"
-            className="text-xs font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1"
+            className="text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors inline-flex items-center gap-1"
           >
             Directory <ArrowRight className="h-3 w-3" />
           </Link>
@@ -178,24 +177,24 @@ export default async function PublicHomePage() {
         </div>
       </section>
 
-      {/* ── Discretion & Attribution Note ───────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-1 max-w-xl">
-            <h3 className="font-[family-name:var(--ds-font-display)] text-lg font-medium text-[var(--foreground)]">
+      {/* ── Colophon & Reading Note ─────────────────────────────────────────── */}
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4">
+        <div className="border-t border-[var(--border)] pt-8 flex flex-col md:flex-row md:items-baseline justify-between gap-6 text-xs text-[var(--muted-foreground)]">
+          <div className="space-y-1.5 max-w-xl">
+            <h3 className="font-[family-name:var(--ds-font-display)] text-base font-semibold text-[var(--foreground)]">
               An Open Repository for Deep Reading
             </h3>
-            <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
-              No account is required to browse, search, or save reading notes locally. When you find an essay you love, we encourage you to support the original author and journal directly.
+            <p className="leading-relaxed font-light">
+              No account is required to browse, search, or save reading notes locally. When you discover an essay that speaks to you, we encourage supporting the author and publication directly.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/history">View Reading History</Link>
-            </Button>
-            <Button variant="primary" size="sm" asChild>
-              <Link href="/saved">Your Saved Notes</Link>
-            </Button>
+          <div className="flex items-center gap-4 shrink-0 font-medium text-xs">
+            <Link href="/history" className="hover:text-[var(--foreground)] transition-colors">
+              Reading History
+            </Link>
+            <Link href="/saved" className="text-[var(--foreground)] hover:underline underline-offset-4">
+              Saved Notes
+            </Link>
           </div>
         </div>
       </section>

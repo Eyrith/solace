@@ -1,0 +1,15 @@
+{
+  "mode": "implement",
+  "objective": "Teamwork execution for Phase 1 to 5",
+  "acceptance_criteria": [
+    "Phase 1 complete",
+    "Phase 2 complete",
+    "Phase 3 complete",
+    "Phase 4 complete",
+    "Phase 5 complete"
+  ],
+  "allowed_write_scope": [
+    "*"
+  ],
+  "required_validators": []
+}

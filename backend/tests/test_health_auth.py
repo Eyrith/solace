@@ -25,7 +25,6 @@ async def test_health_endpoint_reports_non_sensitive_status(
     api_client: httpx.AsyncClient, monkeypatch
 ) -> None:
     monkeypatch.setenv("NEXT_PUBLIC_SUPABASE_URL", "")
-    monkeypatch.setenv("SYNAPSE_ADMIN_ACCESS_TOKEN", "")
     res = await api_client.get("/api/health")
     assert res.status_code == 200
     body = res.json()
@@ -33,7 +32,6 @@ async def test_health_endpoint_reports_non_sensitive_status(
     assert body["service"] == "sanctuary-fastapi-backend"
     assert body["integrations"] == {
         "supabase": False,
-        "matrix": False,
         "livekit": False,
         "localPocMode": False,
     }

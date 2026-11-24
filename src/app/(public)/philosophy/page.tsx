@@ -1,7 +1,7 @@
 import { CategoryView } from '@/components/editorial/category-view'
 
 export const metadata = {
-  title: 'Philosophy — Commonplace',
+  title: 'Philosophy',
   description: 'Inquiries into Stoicism, existentialism, moral attention, and ancient wisdom.',
 }
 

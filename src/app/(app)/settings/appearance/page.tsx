@@ -5,6 +5,7 @@ import Link from 'next/link'
 import {
   Sun,
   Moon,
+  Monitor,
   Check,
   ArrowLeft,
   RotateCcw,
@@ -129,38 +130,53 @@ export default function AppearanceSettingsPage() {
         </div>
       </section>
 
-      {/* ── 2. Mode (Light / Dark) ───────────────────────────────────────────── */}
+      {/* ── 2. Mode (System / Light / Dark) ──────────────────────────────────── */}
       <section className="space-y-4">
         <div>
           <h2 className="text-base font-semibold text-[var(--foreground)]">Color Mode</h2>
           <p className="text-xs text-[var(--muted-foreground)]">
-            Gentle day appearance or calming midnight ambiance.
+            System follows your device appearance automatically, or choose an explicit tone.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 max-w-sm">
+        <div className="grid grid-cols-3 gap-3 max-w-md">
           <button
-            onClick={() => setMode('light')}
-            className={`p-4 rounded-[var(--ds-radius)] border flex items-center justify-center gap-2 text-xs font-medium cursor-pointer ${
-              mode === 'light'
+            type="button"
+            onClick={() => setMode('system')}
+            className={`p-3.5 rounded-[var(--ds-radius)] border flex flex-col items-center justify-center gap-1.5 text-xs font-medium cursor-pointer transition-all ${
+              mode === 'system'
                 ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]'
-                : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)]'
+                : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
-            <Sun className="h-4 w-4" />
-            <span>Light Ambiance</span>
+            <Monitor className="h-4 w-4" />
+            <span>System</span>
           </button>
 
           <button
+            type="button"
+            onClick={() => setMode('light')}
+            className={`p-3.5 rounded-[var(--ds-radius)] border flex flex-col items-center justify-center gap-1.5 text-xs font-medium cursor-pointer transition-all ${
+              mode === 'light'
+                ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]'
+                : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            <Sun className="h-4 w-4" />
+            <span>Light</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setMode('dark')}
-            className={`p-4 rounded-[var(--ds-radius)] border flex items-center justify-center gap-2 text-xs font-medium cursor-pointer ${
+            className={`p-3.5 rounded-[var(--ds-radius)] border flex flex-col items-center justify-center gap-1.5 text-xs font-medium cursor-pointer transition-all ${
               mode === 'dark'
                 ? 'border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-1 ring-[var(--primary)]'
-                : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)]'
+                : 'border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
             }`}
           >
             <Moon className="h-4 w-4" />
-            <span>Dark Night</span>
+            <span>Dark</span>
           </button>
         </div>
       </section>

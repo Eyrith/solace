@@ -41,6 +41,7 @@ export interface DesignSystemState {
 }
 
 interface DesignSystemContextValue extends DesignSystemState {
+  resolvedMode: "light" | "dark";
   setEnvironment: (environment: EnvironmentMode) => void;
   setPalette: (palette: PaletteId) => void;
   setMode: (mode: ThemeMode) => void;
@@ -60,7 +61,7 @@ interface DesignSystemContextValue extends DesignSystemState {
 const DEFAULT_EDITORIAL_STATE: DesignSystemState = {
   environment: "editorial",
   palette: "editorial",
-  mode: "light",
+  mode: "system",
   fontPairing: "editorial-playfair",
   fontScale: "default",
   density: "comfortable",
@@ -74,12 +75,12 @@ const DEFAULT_EDITORIAL_STATE: DesignSystemState = {
 
 const DEFAULT_PRIVATE_STATE: DesignSystemState = {
   environment: "private",
-  palette: "ivory",
-  mode: "light",
-  fontPairing: "intimate-lora",
+  palette: "kulfi",
+  mode: "system",
+  fontPairing: "modern-manrope",
   fontScale: "default",
   density: "comfortable",
-  bubbleStyle: "soft",
+  bubbleStyle: "pill",
   chatBackground: "linen",
   reducedMotion: false,
   discreetNotifications: true,
@@ -119,8 +120,30 @@ export function DesignSystemProvider({
       ...(initialPalette ? { palette: initialPalette } : {}),
     };
   });
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
   const [userMutationSeq, setUserMutationSeq] = useState(0);
   const hydratedRef = useRef(false);
+
+  // Subscribe to OS color scheme changes live
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => {
+      setSystemPrefersDark(e.matches);
+    };
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
+
+  const resolvedMode: "light" | "dark" =
+    state.mode === "system"
+      ? systemPrefersDark
+        ? "dark"
+        : "light"
+      : state.mode;
 
   // Hydrate locally saved tokens immediately, then overlay server preferences when signed in.
   useEffect(() => {
@@ -138,7 +161,9 @@ export function DesignSystemProvider({
           setState((prev) => ({
             ...prev,
             ...(parsed.palette && VALID_PALETTES.has(parsed.palette) ? { palette: parsed.palette } : {}),
-            ...(parsed.mode === "light" || parsed.mode === "dark" ? { mode: parsed.mode } : {}),
+            ...(parsed.mode === "light" || parsed.mode === "dark" || parsed.mode === "system"
+              ? { mode: parsed.mode }
+              : {}),
             ...(parsed.fontPairing && VALID_PAIRINGS.has(parsed.fontPairing)
               ? { fontPairing: parsed.fontPairing }
               : {}),
@@ -184,21 +209,17 @@ export function DesignSystemProvider({
         const prefs = payload?.preferences as Record<string, unknown> | null | undefined;
         if (!prefs) return;
         const rawMode = prefs.color_mode;
-        const resolvedMode: ThemeMode | undefined =
-          rawMode === "light" || rawMode === "dark"
-            ? rawMode
-            : rawMode === "system" && typeof window !== "undefined"
-              ? window.matchMedia("(prefers-color-scheme: dark)").matches
-                ? "dark"
-                : "light"
-              : undefined;
+        const serverMode: ThemeMode | undefined =
+          rawMode === "light" || rawMode === "dark" || rawMode === "system"
+            ? (rawMode as ThemeMode)
+            : undefined;
 
         setState((prev) => ({
           ...prev,
           ...(typeof prefs.palette === "string" && VALID_PALETTES.has(prefs.palette)
             ? { palette: prefs.palette as PaletteId }
             : {}),
-          ...(resolvedMode ? { mode: resolvedMode } : {}),
+          ...(serverMode ? { mode: serverMode } : {}),
           ...(typeof prefs.font_pairing === "string" && VALID_PAIRINGS.has(prefs.font_pairing)
             ? { fontPairing: prefs.font_pairing as FontPairingId }
             : {}),
@@ -238,7 +259,8 @@ export function DesignSystemProvider({
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-theme", state.palette);
-    root.setAttribute("data-mode", state.mode);
+    root.setAttribute("data-mode", resolvedMode);
+    root.setAttribute("data-mode-preference", state.mode);
     root.setAttribute("data-environment", state.environment);
     root.setAttribute("data-reduced-motion", String(state.reducedMotion));
 
@@ -249,7 +271,7 @@ export function DesignSystemProvider({
     root.style.setProperty("--ds-font-scale", FONT_SCALE_VALUES[state.fontScale].factor);
     root.style.setProperty("--ds-density-gap", DENSITY_VALUES[state.density].gap);
     root.style.setProperty("--ds-card-pad", DENSITY_VALUES[state.density].cardPad);
-  }, [state]);
+  }, [state, resolvedMode]);
 
   // Persist user preference edits locally and to Supabase `/api/account/preferences`
   useEffect(() => {
@@ -297,6 +319,7 @@ export function DesignSystemProvider({
 
     return {
       ...state,
+      resolvedMode,
       setEnvironment: (environment) =>
         setState((prev) => {
           if (prev.environment === environment) return prev;
@@ -332,7 +355,10 @@ export function DesignSystemProvider({
       setPalette: (palette) => mutate((prev) => ({ ...prev, palette })),
       setMode: (mode) => mutate((prev) => ({ ...prev, mode })),
       toggleMode: () =>
-        mutate((prev) => ({ ...prev, mode: prev.mode === "light" ? "dark" : "light" })),
+        mutate((prev) => ({
+          ...prev,
+          mode: resolvedMode === "dark" ? "light" : "dark",
+        })),
       setFontPairing: (fontPairing) => mutate((prev) => ({ ...prev, fontPairing })),
       setFontScale: (fontScale) => mutate((prev) => ({ ...prev, fontScale })),
       setDensity: (density) => mutate((prev) => ({ ...prev, density })),
@@ -349,7 +375,7 @@ export function DesignSystemProvider({
           return target === "private" ? DEFAULT_PRIVATE_STATE : DEFAULT_EDITORIAL_STATE;
         }),
     };
-  }, [state]);
+  }, [state, resolvedMode]);
 
   return (
     <DesignSystemContext.Provider value={value}>

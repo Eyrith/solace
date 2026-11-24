@@ -76,9 +76,6 @@ async def test_retention_cron_purges_due_ephemeral_media_and_messages(
     monkeypatch.setenv("NEXT_PUBLIC_SUPABASE_URL", "https://demo.supabase.co")
     monkeypatch.setenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key")
     monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "service-key")
-    monkeypatch.setenv("MATRIX_HOMESERVER_INTERNAL_URL", "http://synapse.local:8008")
-    monkeypatch.setenv("NEXT_PUBLIC_MATRIX_SERVER_NAME", "sanctuary.local")
-    monkeypatch.setenv("SYNAPSE_ADMIN_ACCESS_TOKEN", "syt_admin_secret")
 
     denied = await api_client.post("/api/cron/retention")
     assert denied.status_code == 401
@@ -90,17 +87,8 @@ async def test_retention_cron_purges_due_ephemeral_media_and_messages(
                 json=[
                     {
                         "id": "timer-1",
-                        "matrix_media_id": "cipherBlob99",
-                        "matrix_server_name": "sanctuary.local",
                     }
                 ],
-            )
-        )
-        synapse_del = mock.delete(
-            "http://synapse.local:8008/_synapse/admin/v1/media/sanctuary.local/cipherBlob99"
-        ).mock(
-            return_value=httpx.Response(
-                200, json={"deleted_media": ["cipherBlob99"], "total": 1}
             )
         )
         timer_patch = mock.patch(
@@ -119,6 +107,5 @@ async def test_retention_cron_purges_due_ephemeral_media_and_messages(
     assert data["skipped"] is False
     assert data["purgedTimers"] == 1
     assert data["deletedMessages"] == 1
-    assert synapse_del.called
     assert timer_patch.called
     assert msg_del.called

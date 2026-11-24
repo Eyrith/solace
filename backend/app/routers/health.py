@@ -13,11 +13,11 @@ async def health_check() -> dict[str, object]:
         "status": "ok",
         "service": "sanctuary-fastapi-backend",
         "environment": "production" if settings.is_production else "development",
+        "engine": "direct-lightweight",
+        "stealth": True,
         "integrations": {
             "supabase": settings.is_supabase_configured,
-            "matrix": settings.is_matrix_server_configured,
-            "livekit": bool(settings.livekit_api_key and settings.livekit_api_secret),
-            "localPocMode": settings.is_local_poc_mode_enabled,
+            "livekit": False,
+            "localPocMode": False,
         },
     }
-

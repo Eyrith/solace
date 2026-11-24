@@ -106,7 +106,7 @@ function AppRegisterForm() {
         <StatusBanner
           tone="success"
           title="Profile Created"
-          description="Entering your private space..."
+          description="Entering your private sanctuary..."
         />
       )}
 

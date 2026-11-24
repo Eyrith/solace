@@ -231,3 +231,15 @@ All six specified fonts are loaded via `next/font/google` (self-hosted at build 
 | **Screen Readers** | Semantic landmarks, live regions | `aria-live="polite"` for typing/toast/new-message announcements; `role="alert"` for errors |
 | **Reduced Motion** | OS + User setting honored | `@media (prefers-reduced-motion: reduce)` + `[data-reduced-motion="true"]` |
 
+---
+
+## 9. Code Governance & Design Invariants
+
+All components and templates across both public editorial (`Meridian`) and private sanctuary (`Solace`) must adhere to these invariants:
+
+1. **No Raw Hex Values in Components**: All color values must be sourced exclusively from CSS variables defined in `src/app/globals.css` (e.g. `var(--primary)`, `var(--surface-1)`, `var(--muted)`, `var(--border)`). No hardcoded `#...` or one-off arbitrary Tailwind hex colors (`bg-[#123456]`).
+2. **No Emojis as UI Icons**: Emojis must never be used for navigation, status indicators, or avatars. All icons must be stroke-consistent Lucide React SVG components with explicit accessibility labels (`aria-hidden="true"` or `aria-label`).
+3. **12px Minimum Metadata**: No UI metadata, timestamps, or helper text may fall below `12px` (`0.75rem` / `text-xs`). Legibility and contrast take absolute precedence over miniaturization.
+4. **One Primary Action per Screen**: Every view must present at most one prominent primary action (`variant="default"` / `bg-[var(--primary)]`). All supporting actions must use secondary, outline, or ghost styling to prevent visual conflict.
+
+

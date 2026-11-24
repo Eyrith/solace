@@ -171,6 +171,9 @@ function AppLoginForm() {
             variant="outline"
             className="w-full"
             onClick={() => {
+              if (typeof document !== 'undefined') {
+                document.cookie = 'sanctuary_sandbox=true; path=/; max-age=86400; SameSite=Lax'
+              }
               if (email.trim()) {
                 updateLocalProfile({ email: email.trim() })
               }

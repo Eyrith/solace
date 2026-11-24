@@ -1,10 +1,11 @@
 export type EnvironmentMode = "editorial" | "private";
 
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "system";
 
 export type PaletteId =
   | "editorial"
   | "ivory"
+  | "kulfi"
   | "beige"
   | "burgundy"
   | "sage"
@@ -57,6 +58,15 @@ export const PALETTES: readonly PaletteMeta[] = [
     lightSwatch: "#3D342B",
     darkSwatch: "#E6DCCB",
     contrastNote: "15.1:1 light / 15.3:1 dark",
+  },
+  {
+    id: "kulfi",
+    name: "Kulfi Bedtime",
+    description: "Cozy saffron cream, cardamom warmth, and pistachio accents for late-night banter.",
+    environment: "private",
+    lightSwatch: "#E07A5F",
+    darkSwatch: "#F28E6F",
+    contrastNote: "16.4:1 light / 15.8:1 dark",
   },
   {
     id: "beige",

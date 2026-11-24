@@ -34,26 +34,6 @@ class Settings(BaseSettings):
         default="", validation_alias="SUPABASE_SERVICE_ROLE_KEY"
     )
 
-    # Matrix Synapse
-    matrix_homeserver_internal_url: str = Field(
-        default="", validation_alias="MATRIX_HOMESERVER_INTERNAL_URL"
-    )
-    next_public_matrix_homeserver_url: str = Field(
-        default="", validation_alias="NEXT_PUBLIC_MATRIX_HOMESERVER_URL"
-    )
-    next_public_matrix_server_name: str = Field(
-        default="matrix.localhost", validation_alias="NEXT_PUBLIC_MATRIX_SERVER_NAME"
-    )
-    synapse_admin_access_token: str = Field(
-        default="", validation_alias="SYNAPSE_ADMIN_ACCESS_TOKEN"
-    )
-    matrix_user_hmac_secret: str = Field(
-        default="", validation_alias="MATRIX_USER_HMAC_SECRET"
-    )
-    matrix_local_poc_mode: bool = Field(
-        default=False, validation_alias="MATRIX_LOCAL_POC_MODE"
-    )
-
     # LiveKit
     livekit_api_key: str = Field(default="", validation_alias="LIVEKIT_API_KEY")
     livekit_api_secret: str = Field(default="", validation_alias="LIVEKIT_API_SECRET")
@@ -72,6 +52,9 @@ class Settings(BaseSettings):
     supabase_webhook_secret: str = Field(
         default="", validation_alias="SUPABASE_WEBHOOK_SECRET"
     )
+
+    # Redis / In-Memory Cache
+    redis_url: str = Field(default="", validation_alias="REDIS_URL")
 
     @property
     def is_production(self) -> bool:
@@ -94,24 +77,9 @@ class Settings(BaseSettings):
         )
 
     @property
-    def matrix_internal_url(self) -> str:
-        raw = self.matrix_homeserver_internal_url or self.next_public_matrix_homeserver_url
-        return raw.rstrip("/")
-
-    @property
-    def matrix_public_url(self) -> str:
-        raw = self.next_public_matrix_homeserver_url or self.matrix_homeserver_internal_url
-        return raw.rstrip("/")
-
-    @property
-    def is_matrix_server_configured(self) -> bool:
-        return bool(self.matrix_internal_url and self.synapse_admin_access_token)
-
-    @property
     def is_local_poc_mode_enabled(self) -> bool:
         return (
             not self.is_production
-            and self.matrix_local_poc_mode
             and not self.is_supabase_configured
         )
 

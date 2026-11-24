@@ -19,17 +19,17 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          "bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-92 shadow-xs",
+          "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90 shadow-xs",
         secondary:
-          "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:opacity-90",
+          "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--secondary)]/80",
         outline:
-          "border border-[var(--border)] bg-transparent text-[var(--foreground)] hover:bg-[var(--muted)]",
+          "border border-[var(--border)] bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-2)]",
         ghost:
-          "bg-transparent text-[var(--foreground)] hover:bg-[var(--muted)]",
+          "bg-transparent text-[var(--foreground)] hover:bg-[var(--surface-2)]",
         subtle:
-          "bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--secondary)]",
+          "bg-[var(--surface-2)] text-[var(--foreground)] hover:bg-[var(--muted)]",
         destructive:
-          "bg-[var(--destructive)] text-[var(--destructive-foreground)] hover:opacity-92 shadow-xs",
+          "bg-[var(--destructive)] text-[var(--destructive-foreground)] hover:bg-[var(--destructive)]/90 shadow-xs",
       },
       size: {
         sm: "min-h-11 sm:min-h-9 px-3.5 text-sm",

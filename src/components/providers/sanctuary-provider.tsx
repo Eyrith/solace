@@ -30,9 +30,10 @@ export interface SanctuarySpace {
   partner?: SpaceMemberSummary | null
   myMood?: string | null
   partnerMood?: string | null
-  matrixRoomId?: string | null
   pendingInviteUrl?: string | null
   createdAt?: string | null
+  camouflageAlias?: string | null
+  burnTimer?: string | null
 }
 
 interface SanctuaryContextValue {
@@ -47,8 +48,19 @@ interface SanctuaryContextValue {
   activeSpaceId: string | null
   setActiveSpaceId: (spaceId: string) => void
   refreshSpaces: () => Promise<void>
-  createSpace: (name: string, partnerName?: string) => Promise<SanctuarySpace>
-  renameSpace: (spaceId: string, name: string, partnerName?: string) => Promise<void>
+  createSpace: (
+    name: string,
+    partnerName?: string,
+    camouflageAlias?: string,
+    burnTimer?: string
+  ) => Promise<SanctuarySpace>
+  renameSpace: (
+    spaceId: string,
+    name: string,
+    partnerName?: string,
+    camouflageAlias?: string,
+    burnTimer?: string
+  ) => Promise<void>
   createInvite: (spaceId?: string) => Promise<{ inviteUrl: string; expiresAt?: string }>
   setMood: (mood: string, spaceId?: string) => Promise<void>
 }
@@ -89,6 +101,8 @@ function mapLocalStateToSpaces(localState: LocalSanctuaryState): SanctuarySpace[
       partnerMood: actor === 'self' ? s.partnerMood : s.myMood,
       pendingInviteUrl: s.pendingInviteUrl ?? null,
       createdAt: s.createdAt,
+      camouflageAlias: s.camouflageAlias ?? null,
+      burnTimer: s.burnTimer ?? null,
     }
   })
 }
@@ -127,7 +141,7 @@ export function SanctuaryProvider({ children }: { children: React.ReactNode }) {
 
   const applyLocalWorkspace = useCallback(() => {
     const localState = getLocalSanctuaryState()
-    const mapped = mapLocalStateToSpaces(localState)
+    const mapped = mapLocalStateToSpaces(localState).slice(0, 1)
     setConfigured(false)
     setDemoActorState(localState.demoActor)
     setCurrentUserId(`local-${localState.demoActor}`)
@@ -141,9 +155,11 @@ export function SanctuaryProvider({ children }: { children: React.ReactNode }) {
         applyLocalWorkspace()
         return
       }
-      const loadedSpaces: SanctuarySpace[] = Array.isArray(data.spaces)
+      const rawSpaces: SanctuarySpace[] = Array.isArray(data.spaces)
         ? (data.spaces as SanctuarySpace[])
         : []
+      // Hard-lock to 1:1 only: An account is strictly limited to 1 sanctuary space
+      const loadedSpaces: SanctuarySpace[] = rawSpaces.slice(0, 1)
       setConfigured(true)
       setCurrentUserId(data.currentUserId ?? null)
       setSpaces(loadedSpaces)
@@ -228,22 +244,31 @@ export function SanctuaryProvider({ children }: { children: React.ReactNode }) {
   )
 
   const createSpace = useCallback(
-    async (name: string, partnerName?: string): Promise<SanctuarySpace> => {
+    async (
+      name: string,
+      partnerName?: string,
+      camouflageAlias?: string,
+      burnTimer?: string
+    ): Promise<SanctuarySpace> => {
+      // Hard-lock to 1:1 only: Return the single existing space if one exists
+      if (spaces.length > 0) {
+        return spaces[0]
+      }
       if (!configured) {
-        const { space } = createLocalSpace(name, partnerName)
+        const { space } = createLocalSpace(name, partnerName, camouflageAlias, burnTimer)
         applyLocalWorkspace()
         setActiveSpaceId(space.id)
         const mapped = mapLocalStateToSpaces(getLocalSanctuaryState()).find((s) => s.id === space.id)
-        return mapped ?? { id: space.id, name: space.name }
+        return mapped ?? { id: space.id, name: space.name, camouflageAlias: space.camouflageAlias, burnTimer: space.burnTimer }
       }
       const res = await fetch('/api/spaces/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, partnerName, camouflageAlias, burnTimer }),
       })
       const payload = await res.json()
       if (!res.ok) {
-        throw new Error(payload?.detail || payload?.error || 'Could not create space')
+        throw new Error(payload?.detail || payload?.error || 'Could not create sanctuary space')
       }
       await refreshSpaces()
       if (payload?.space?.id) {
@@ -251,13 +276,19 @@ export function SanctuaryProvider({ children }: { children: React.ReactNode }) {
       }
       return payload.space as SanctuarySpace
     },
-    [configured, applyLocalWorkspace, refreshSpaces, setActiveSpaceId],
+    [configured, spaces, applyLocalWorkspace, refreshSpaces, setActiveSpaceId],
   )
 
   const renameSpace = useCallback(
-    async (spaceId: string, name: string, partnerName?: string) => {
+    async (
+      spaceId: string,
+      name: string,
+      partnerName?: string,
+      camouflageAlias?: string,
+      burnTimer?: string
+    ) => {
       if (!configured) {
-        renameLocalSpace(spaceId, name, partnerName)
+        renameLocalSpace(spaceId, name, partnerName, camouflageAlias, burnTimer)
         applyLocalWorkspace()
       }
     },
@@ -269,6 +300,11 @@ export function SanctuaryProvider({ children }: { children: React.ReactNode }) {
       const targetSpaceId = spaceId ?? resolvedSpaceId ?? activeSpaceId
       if (!targetSpaceId) {
         throw new Error('Create or select a sanctuary space first.')
+      }
+      const targetSpace = spaces.find((s) => s.id === targetSpaceId)
+      // Close invites permanently after pairing:
+      if (targetSpace && (targetSpace.members?.length ?? 0) >= 2 && targetSpace.partner && targetSpace.partner.displayName !== 'Partner pending' && !targetSpace.pendingInviteUrl) {
+        throw new Error('Your sanctuary is already connected with your partner. Additional invites are closed.')
       }
       if (!configured) {
         const { invite, inviteUrl } = createLocalInvite(targetSpaceId)
@@ -290,7 +326,7 @@ export function SanctuaryProvider({ children }: { children: React.ReactNode }) {
         expiresAt: payload.invite?.expires_at as string | undefined,
       }
     },
-    [configured, resolvedSpaceId, activeSpaceId, applyLocalWorkspace, refreshSpaces],
+    [configured, spaces, resolvedSpaceId, activeSpaceId, applyLocalWorkspace, refreshSpaces],
   )
 
   const setMood = useCallback(

@@ -8,7 +8,7 @@ import { PublicationCard } from '@/components/editorial/publication-card'
 export const revalidate = 3600
 
 export const metadata = {
-  title: 'Publication Directory — Commonplace',
+  title: 'Publication Directory',
   description: 'Curated index of independent publications, journals, and educational initiatives.',
 }
 
@@ -25,7 +25,7 @@ export default async function PublicationsDirectoryPage() {
           <ArrowLeft className="h-3.5 w-3.5" />
           <span>Back to Home</span>
         </Link>
-        <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold tracking-tight text-[var(--foreground)]">
+        <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold text-[var(--foreground)]">
           Publication Directory
         </h1>
         <p className="text-base text-[var(--muted-foreground)] max-w-2xl font-light">
@@ -51,12 +51,12 @@ export default async function PublicationsDirectoryPage() {
         })}
       </div>
 
-      <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--muted)]/30 p-6 text-xs text-[var(--muted-foreground)] space-y-2">
+      <footer className="pt-8 border-t border-[var(--border)]/70 text-xs text-[var(--muted-foreground)] space-y-2">
         <div className="font-medium text-[var(--foreground)]">Publishing Partnership &amp; Attribution Policy</div>
-        <p className="leading-relaxed">
-          Commonplace does not replicate full copyright text or monetize third-party intellectual property. We provide editorial indexing, contextual summaries, and direct canonical links to encourage readers to support independent journalism.
+        <p className="leading-relaxed max-w-3xl font-light">
+          Meridian does not replicate full copyright text or monetize third-party intellectual property. We provide editorial indexing, contextual summaries, and direct canonical links to encourage readers to support independent journalism.
         </p>
-      </div>
+      </footer>
     </div>
   )
 }

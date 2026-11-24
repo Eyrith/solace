@@ -1,0 +1,4 @@
+{"timestamp": "2026-11-23T04:48:44.763234+00:00", "decision": "continue", "reason": "Investigation cycle"}
+{"timestamp": "2026-11-23T04:48:44.763242+00:00", "decision": "continue", "reason": "Investigation cycle"}
+{"timestamp": "2026-11-23T04:48:44.763247+00:00", "decision": "continue", "reason": "Investigation cycle"}
+{"timestamp": "2026-11-23T05:55:37.910454+00:00", "decision": "allow-unverified", "reason": "Completion gate circuit breaker: 3+ verification cycles. Terminating as UNVERIFIED, not as completion: AC1 (PENDING); AC2 (PENDING); AC3 (PENDING); AC4 (PENDING); AC5 (PENDING)"}

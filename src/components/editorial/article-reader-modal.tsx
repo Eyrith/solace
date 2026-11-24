@@ -95,7 +95,7 @@ export function ArticleReaderModal({
           <header className="space-y-3">
             <h2
               id="article-reader-title"
-              className="font-[family-name:var(--ds-font-display)] text-2xl sm:text-3xl font-bold tracking-tight leading-tight text-[var(--foreground)]"
+              className="font-[family-name:var(--ds-font-display)] text-2xl sm:text-3xl font-bold leading-tight text-[var(--foreground)]"
             >
               {article.title}
             </h2>
@@ -111,27 +111,27 @@ export function ArticleReaderModal({
           </p>
 
           {article.keyTakeaway && (
-            <blockquote className="rounded-[var(--ds-radius)] border-l-4 border-[var(--primary)] bg-[var(--card)] p-4 sm:p-5 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--primary)]">
-                <Quote className="h-3.5 w-3.5" />
-                <span>Curator Key Takeaway</span>
-              </div>
-              <p className="font-[family-name:var(--ds-font-display)] text-base sm:text-lg italic leading-relaxed text-[var(--foreground)]">
+            <figure className="my-6 border-l-2 border-[var(--foreground)]/40 pl-5 sm:pl-6 py-1">
+              <p className="font-[family-name:var(--ds-font-display)] text-lg sm:text-xl leading-relaxed text-[var(--foreground)]">
                 “{article.keyTakeaway}”
               </p>
-            </blockquote>
+              <figcaption className="mt-2 text-xs text-[var(--muted-foreground)]">
+                Editorial takeaway
+              </figcaption>
+            </figure>
           )}
 
           {article.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {article.tags.map((tag) => (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--muted-foreground)] pt-1">
+              <span className="text-[var(--foreground)]/60 font-medium">Themes:</span>
+              {article.tags.map((tag, idx) => (
                 <Link
                   key={tag}
                   href={`/search?q=${encodeURIComponent(tag)}`}
                   onClick={onClose}
-                  className="rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:border-[var(--primary)]/50 transition-colors"
+                  className="hover:text-[var(--foreground)] hover:underline underline-offset-4 transition-colors"
                 >
-                  #{tag}
+                  {tag}{idx < article.tags.length - 1 ? " ·" : ""}
                 </Link>
               ))}
             </div>
@@ -139,7 +139,7 @@ export function ArticleReaderModal({
 
           <form
             onSubmit={handleSaveMarginalia}
-            className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-4 space-y-3"
+            className="pt-6 border-t border-[var(--border)]/70 space-y-3"
           >
             <div className="flex items-center justify-between">
               <label

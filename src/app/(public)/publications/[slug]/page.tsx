@@ -41,18 +41,18 @@ export default async function PublicationDetailPage({ params }: PublicationPageP
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-2">
           <div className="space-y-3 max-w-2xl">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <span
-                className="h-3.5 w-3.5 rounded-full"
+                className="h-2.5 w-2.5 rounded-full"
                 style={{ backgroundColor: publication.accentColor }}
                 aria-hidden="true"
               />
-              <span className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] font-medium">
+              <span className="text-xs text-[var(--muted-foreground)]">
                 Established {publication.foundedYear}
               </span>
             </div>
 
-            <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold tracking-tight text-[var(--foreground)]">
+            <h1 className="font-[family-name:var(--ds-font-display)] text-3xl sm:text-5xl font-bold text-[var(--foreground)]">
               {publication.name}
             </h1>
 
@@ -88,14 +88,11 @@ export default async function PublicationDetailPage({ params }: PublicationPageP
         </div>
 
         {/* Focus areas */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-4">
-          <span className="text-xs text-[var(--muted-foreground)] mr-1">Focus Topics:</span>
-          {publication.topics.map((t) => (
-            <span
-              key={t}
-              className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)]"
-            >
-              {t}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-4 text-xs text-[var(--muted-foreground)]">
+          <span className="text-[var(--foreground)]/70 font-medium">Core themes:</span>
+          {publication.topics.map((t, idx) => (
+            <span key={t} className="hover:text-[var(--foreground)] transition-colors">
+              {t}{idx < publication.topics.length - 1 ? " ·" : ""}
             </span>
           ))}
         </div>
@@ -103,7 +100,7 @@ export default async function PublicationDetailPage({ params }: PublicationPageP
 
       {/* Articles from this publication */}
       <section className="space-y-6">
-        <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold tracking-tight">
+        <h2 className="font-[family-name:var(--ds-font-display)] text-2xl font-semibold text-[var(--foreground)]">
           Selected Readings from {publication.name}
         </h2>
         <ArticleFeed articles={articles} />

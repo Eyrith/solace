@@ -4,6 +4,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query
 
+from app.core.cache import static_data_cache
 from app.core.config import Settings, get_settings
 from app.core.deps import (
     get_optional_supabase_user,
@@ -40,12 +41,18 @@ async def list_questions(
     if spaceId:
         await verify_space_membership(gateway, user, spaceId.strip())
 
-    rows = await gateway.select(
-        "question_library",
-        columns="id,slug,category,content,is_custom,space_id,created_at",
-        filters={"game_template_id": "is.null"},
-        order="created_at.asc",
-        access_token=user.access_token,
+    async def _fetch_library_questions():
+        res = await gateway.select(
+            "question_library",
+            columns="id,slug,category,content,is_custom,space_id,created_at",
+            filters={"game_template_id": "is.null"},
+            order="created_at.asc",
+            access_token=user.access_token,
+        )
+        return res if isinstance(res, list) else []
+
+    rows = await static_data_cache.get_or_set(
+        "static_question_library", _fetch_library_questions, ttl=600
     )
     saves = await gateway.select(
         "question_saves",

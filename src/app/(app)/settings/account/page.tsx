@@ -11,7 +11,6 @@ import {
   ArrowLeft,
   KeyRound,
   Save,
-  FolderPlus,
   RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,7 +19,6 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { StatusBanner } from '@/components/ui/status-banner'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { EncryptionSettingsPanel } from '@/components/sanctuary/encryption-settings-panel'
 import { SettingsTabs } from '@/components/sanctuary/settings-tabs'
 import { useSanctuary } from '@/components/providers/sanctuary-provider'
 import { createClient } from '@/lib/supabase/client'
@@ -31,158 +29,12 @@ import {
   updateLocalProfile,
 } from '@/lib/sanctuary/local-store'
 
-function SandboxSpaceManager({
-  activeSpaceId,
-  activeSpaceName,
-  spaceCount,
-  demoActor,
-  partnerName,
-  onRenameSpace,
-  onCreateSpace,
-  onSwitchActor,
-  onNotice,
-}: {
-  activeSpaceId: string | null
-  activeSpaceName: string
-  spaceCount: number
-  demoActor: 'self' | 'partner'
-  partnerName: string
-  onRenameSpace: (spaceId: string, name: string) => void
-  onCreateSpace: (name: string, partnerName?: string) => Promise<unknown>
-  onSwitchActor: (actor: 'self' | 'partner') => void
-  onNotice: (message: string) => void
-}) {
-  const [spaceName, setSpaceName] = React.useState(activeSpaceName)
-  const [newSpaceName, setNewSpaceName] = React.useState('')
-  const [newPartnerName, setNewPartnerName] = React.useState('')
-  const [creatingSpace, setCreatingSpace] = React.useState(false)
-
-  const handleRename = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!activeSpaceId || !spaceName.trim()) return
-    onRenameSpace(activeSpaceId, spaceName.trim())
-    onNotice(`Renamed space to "${spaceName.trim()}".`)
-  }
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newSpaceName.trim()) return
-    setCreatingSpace(true)
-    try {
-      await onCreateSpace(newSpaceName.trim(), newPartnerName.trim() || undefined)
-      onNotice(`Created sanctuary space "${newSpaceName.trim()}".`)
-      setNewSpaceName('')
-      setNewPartnerName('')
-    } finally {
-      setCreatingSpace(false)
-    }
-  }
-
-  return (
-    <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-6 space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-semibold text-[var(--foreground)] flex items-center gap-2">
-            <FolderPlus className="h-4 w-4 text-[var(--primary)]" />
-            <span>Sanctuary Spaces &amp; Test Perspective</span>
-          </h2>
-          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-            Managing {spaceCount} local sanctuary space{spaceCount === 1 ? '' : 's'} stored in this browser.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-1 rounded-[var(--ds-radius)] border border-[var(--border)] p-1 text-xs">
-          <button
-            type="button"
-            onClick={() => onSwitchActor('self')}
-            className={`px-2.5 py-1 rounded-[var(--ds-radius)] cursor-pointer transition-colors ${
-              demoActor === 'self'
-                ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            Act as You
-          </button>
-          <button
-            type="button"
-            onClick={() => onSwitchActor('partner')}
-            className={`px-2.5 py-1 rounded-[var(--ds-radius)] cursor-pointer transition-colors ${
-              demoActor === 'partner'
-                ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
-                : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            Act as {partnerName}
-          </button>
-        </div>
-      </div>
-
-      {activeSpaceId && (
-        <form onSubmit={handleRename} className="flex flex-col sm:flex-row gap-2.5 items-end text-xs">
-          <div className="flex-1 w-full space-y-1">
-            <Label htmlFor="sandbox-space-rename">Active Sanctuary Name</Label>
-            <Input
-              id="sandbox-space-rename"
-              value={spaceName}
-              onChange={(e) => setSpaceName(e.target.value)}
-              maxLength={60}
-              required
-            />
-          </div>
-          <Button type="submit" variant="outline" size="sm">
-            Rename Space
-          </Button>
-        </form>
-      )}
-
-      <form
-        onSubmit={handleCreate}
-        className="pt-3 border-t border-[var(--border)] grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end text-xs"
-      >
-        <div className="space-y-1">
-          <Label htmlFor="sandbox-new-space">New Space Name</Label>
-          <Input
-            id="sandbox-new-space"
-            value={newSpaceName}
-            onChange={(e) => setNewSpaceName(e.target.value)}
-            placeholder="e.g. Weekend Cabin"
-            maxLength={60}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor="sandbox-new-partner">Partner Label</Label>
-          <Input
-            id="sandbox-new-partner"
-            value={newPartnerName}
-            onChange={(e) => setNewPartnerName(e.target.value)}
-            placeholder="e.g. Elena"
-            maxLength={50}
-          />
-        </div>
-        <Button
-          type="submit"
-          variant="primary"
-          size="sm"
-          isLoading={creatingSpace}
-          disabled={!newSpaceName.trim()}
-        >
-          Create Sanctuary Space
-        </Button>
-      </form>
-    </div>
-  )
-}
-
 export default function AccountSettingsPage() {
   const router = useRouter()
   const {
     spaces,
     activeSpace,
     activeSpaceId,
-    demoActor,
-    setDemoActor,
-    renameSpace,
-    createSpace,
   } = useSanctuary()
   const [configured, setConfigured] = React.useState(false)
   const [loadingAccount, setLoadingAccount] = React.useState(true)
@@ -410,9 +262,7 @@ export default function AccountSettingsPage() {
             <span className="text-[11px] text-[var(--muted-foreground)]">
               {loadingAccount
                 ? 'Loading...'
-                : configured
-                  ? `${primaryRole} · ${spacesCount} space${spacesCount === 1 ? '' : 's'}`
-                  : `Local Sandbox · ${spaces.length} space${spaces.length === 1 ? '' : 's'}`}
+                : 'Private 1:1 Sanctuary'}
             </span>
           </div>
 
@@ -472,25 +322,6 @@ export default function AccountSettingsPage() {
           </div>
         </form>
 
-        {/* Local Sandbox Spaces & Actor Switcher */}
-        {!configured && (
-          <SandboxSpaceManager
-            key={activeSpace?.id ?? 'default'}
-            activeSpaceId={activeSpaceId}
-            activeSpaceName={activeSpace?.name ?? 'Private Sanctuary'}
-            spaceCount={spaces.length}
-            demoActor={demoActor}
-            partnerName={partnerDisplayName || activeSpace?.partner?.displayName || 'Partner'}
-            onRenameSpace={renameSpace}
-            onCreateSpace={createSpace}
-            onSwitchActor={setDemoActor}
-            onNotice={setProfileNotice}
-          />
-        )}
-
-        {/* Matrix E2EE Key Management & Zero-Plaintext Storage */}
-        <EncryptionSettingsPanel />
-
         {/* Sessions & Security */}
         <div className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-6 space-y-4">
           <div className="flex items-start justify-between">
@@ -502,7 +333,7 @@ export default function AccountSettingsPage() {
               <p className="text-xs text-[var(--muted-foreground)] max-w-md leading-relaxed">
                 {configured
                   ? 'If you suspect another browser or device has an open tab, you can immediately invalidate all other active refresh tokens.'
-                  : 'Remote device token revocation becomes active once Supabase auth is configured. You can still return to the Commonplace reader anytime.'}
+                  : 'Remote device token revocation becomes active once Supabase auth is configured. You can still return to the Meridian reader anytime.'}
               </p>
             </div>
           </div>
@@ -531,7 +362,7 @@ export default function AccountSettingsPage() {
               className="text-xs"
             >
               <LogOut className="h-3.5 w-3.5 mr-1.5" />
-              <span>{configured ? 'Sign Out' : 'Exit to Commonplace'}</span>
+              <span>{configured ? 'Sign Out' : 'Exit to Meridian'}</span>
             </Button>
           </div>
         </div>
@@ -549,7 +380,7 @@ export default function AccountSettingsPage() {
             </h2>
             <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
               {configured
-                ? 'Permanently purges your profile, leaves all private spaces, and hard-deletes your personal notes from the database. This action is irreversible.'
+                ? 'Permanently purges your profile, unlinks your shared sanctuary, and hard-deletes your personal notes from the database. This action is irreversible.'
                 : 'Restore all local messages, daily reflections, games, memories, calendar dates, and calls back to clean starter defaults.'}
             </p>
           </div>
@@ -585,7 +416,7 @@ export default function AccountSettingsPage() {
         }
         description={
           configured
-            ? 'Are you absolutely certain? This will immediately remove your auth identity, personal notes, membership in private spaces, and profile credentials. Expired disappearing messages cannot be recovered.'
+            ? 'Are you absolutely certain? This will immediately remove your auth identity, personal notes, active partner sanctuary, and profile credentials. Expired disappearing messages cannot be recovered.'
             : 'This clears any local messages, memories, games, and calendar milestones stored in this browser and restores starter sample entries.'
         }
         confirmLabel={

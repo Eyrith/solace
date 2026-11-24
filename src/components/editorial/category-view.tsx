@@ -28,11 +28,8 @@ export async function CategoryView({ categoryKey }: CategoryViewProps) {
         </Link>
 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-2">
-          <div className="space-y-2 max-w-2xl">
-            <span className="text-xs uppercase tracking-widest text-[var(--primary)] font-medium">
-              Field of Inquiry
-            </span>
-            <h1 className="font-[family-name:var(--ds-font-display)] text-4xl sm:text-5xl font-bold tracking-tight text-[var(--foreground)]">
+          <div className="space-y-3 max-w-2xl">
+            <h1 className="font-[family-name:var(--ds-font-display)] text-4xl sm:text-5xl font-bold text-[var(--foreground)]">
               {meta.title}
             </h1>
             <p className="text-base text-[var(--muted-foreground)] leading-relaxed font-light">
@@ -60,23 +57,23 @@ export async function CategoryView({ categoryKey }: CategoryViewProps) {
 
       {/* Cross Exploration Navigation */}
       <section className="border-t border-[var(--border)] pt-12">
-        <h2 className="text-xs uppercase tracking-widest text-[var(--muted-foreground)] font-medium mb-4">
-          Other Fields of Inquiry
+        <h2 className="font-[family-name:var(--ds-font-display)] text-xl font-semibold text-[var(--foreground)] mb-6">
+          Further Fields of Inquiry
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {(Object.keys(TOPIC_METADATA) as Array<keyof typeof TOPIC_METADATA>)
             .filter((key) => key !== categoryKey)
             .map((key) => (
               <Link
                 key={key}
                 href={`/${key}`}
-                className="rounded-[var(--ds-radius)] border border-[var(--border)] bg-[var(--card)] p-3.5 hover:border-[var(--primary)] transition-colors text-center"
+                className="rounded-lg border border-[var(--border)]/70 bg-[var(--card)] p-5 hover:border-[var(--border)] transition-colors"
               >
-                <div className="text-sm font-medium text-[var(--foreground)]">
+                <div className="text-base font-medium text-[var(--foreground)] font-[family-name:var(--ds-font-display)]">
                   {TOPIC_METADATA[key].title}
                 </div>
-                <div className="text-[11px] text-[var(--muted-foreground)] mt-0.5">
-                  Explore topic &rarr;
+                <div className="text-xs text-[var(--muted-foreground)] mt-1 font-light line-clamp-1">
+                  {TOPIC_METADATA[key].tagline}
                 </div>
               </Link>
             ))}

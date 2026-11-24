@@ -1,3 +1,4 @@
+import asyncio
 import time
 import uuid
 from datetime import UTC, datetime
@@ -50,18 +51,34 @@ async def list_spaces(
     space_ids = [row["space_id"] for row in own_list if row.get("space_id")]
     in_filter = f"in.({','.join(space_ids)})"
 
-    spaces_rows = await gateway.select(
-        "private_spaces",
-        columns="id,name,created_by,cover_url,created_at",
-        filters={"id": in_filter},
-        order="created_at.asc",
-        access_token=user.access_token,
-    )
-    all_members = await gateway.select(
-        "private_space_members",
-        columns="space_id,user_id,role,joined_at",
-        filters={"space_id": in_filter},
-        access_token=user.access_token,
+    # Optimize: execute independent space detail queries concurrently via asyncio.gather
+    spaces_rows, all_members, moods_rows, invites_rows = await asyncio.gather(
+        gateway.select(
+            "private_spaces",
+            columns="id,name,created_by,cover_url,created_at",
+            filters={"id": in_filter},
+            order="created_at.asc",
+            access_token=user.access_token,
+        ),
+        gateway.select(
+            "private_space_members",
+            columns="space_id,user_id,role,joined_at",
+            filters={"space_id": in_filter},
+            access_token=user.access_token,
+        ),
+        gateway.select(
+            "space_moods",
+            columns="space_id,user_id,mood,updated_at",
+            filters={"space_id": in_filter},
+            access_token=user.access_token,
+        ),
+        gateway.select(
+            "invitations",
+            columns="space_id,token,expires_at",
+            filters={"created_by": f"eq.{user.id}", "used_at": "is.null"},
+            order="created_at.desc",
+            access_token=user.access_token,
+        ),
     )
     member_user_ids = sorted(
         {m["user_id"] for m in (all_members or []) if isinstance(m, dict) and m.get("user_id")}
@@ -76,28 +93,8 @@ async def list_spaces(
         if member_user_ids
         else []
     )
-    moods_rows = await gateway.select(
-        "space_moods",
-        columns="space_id,user_id,mood,updated_at",
-        filters={"space_id": in_filter},
-        access_token=user.access_token,
-    )
-    matrix_rows = await gateway.select(
-        "space_matrix_rooms",
-        columns="space_id,matrix_room_id,is_invite_locked",
-        filters={"space_id": in_filter},
-        access_token=user.access_token,
-    )
-    invites_rows = await gateway.select(
-        "invitations",
-        columns="space_id,token,expires_at",
-        filters={"created_by": f"eq.{user.id}", "used_at": "is.null"},
-        order="created_at.desc",
-        access_token=user.access_token,
-    )
 
     profiles_by_id = {p["id"]: p for p in (profiles_rows or []) if isinstance(p, dict)}
-    matrix_by_space = {r["space_id"]: r for r in (matrix_rows or []) if isinstance(r, dict)}
     app_base = (settings.next_public_app_url or "http://localhost:3000").rstrip("/")
     role_by_space = {row["space_id"]: row["role"] for row in own_list}
 
@@ -128,7 +125,6 @@ async def list_spaces(
         sp_moods = [m for m in (moods_rows or []) if m.get("space_id") == sid]
         my_mood = next((m.get("mood") for m in sp_moods if m.get("user_id") == user.id), None)
         partner_mood = next((m.get("mood") for m in sp_moods if m.get("user_id") != user.id), None)
-        matrix_info = matrix_by_space.get(sid) or {}
 
         result_spaces.append(
             {
@@ -139,7 +135,6 @@ async def list_spaces(
                 "partner": partner,
                 "myMood": my_mood,
                 "partnerMood": partner_mood,
-                "matrixRoomId": matrix_info.get("matrix_room_id"),
                 "pendingInviteUrl": invite_by_space.get(sid) if len(sp_members) < 2 else None,
             }
         )
@@ -161,6 +156,21 @@ async def create_space(
     if settings.is_supabase_configured:
         if not user:
             raise BackendApiError(401, "UNAUTHORIZED", "Unauthorized")
+
+        # Hard-lock to 1:1 only: Each account is strictly limited to 1 private sanctuary space
+        existing_memberships = await gateway.select(
+            "private_space_members",
+            columns="space_id",
+            filters={"user_id": f"eq.{user.id}"},
+            access_token=user.access_token,
+        )
+        if existing_memberships:
+            raise BackendApiError(
+                400,
+                "ALREADY_HAS_SPACE",
+                "Your account already belongs to a private sanctuary. "
+                "Multiple spaces are not permitted.",
+            )
 
         space = await gateway.insert(
             "private_spaces",
@@ -326,6 +336,21 @@ async def accept_invitation(
         )
     if not user:
         raise BackendApiError(401, "UNAUTHORIZED", "Sign in before accepting this invitation")
+
+    # Hard-lock to 1:1 only: An account can only belong to one sanctuary space
+    existing_memberships = await gateway.select(
+        "private_space_members",
+        columns="space_id",
+        filters={"user_id": f"eq.{user.id}"},
+        access_token=user.access_token,
+    )
+    if existing_memberships:
+        raise BackendApiError(
+            400,
+            "ALREADY_HAS_SPACE",
+            "You already belong to a private sanctuary. "
+            "An account can only be connected to one partner.",
+        )
 
     space_id = await gateway.rpc(
         "consume_invitation",
