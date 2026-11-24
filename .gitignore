@@ -15,6 +15,7 @@ public/wasm/
 .env
 .env*.local
 *.pem
+infra/nginx/certs/*.key
 
 # Generated Deployment & Synapse Runtime State
 infra/matrix/data/
